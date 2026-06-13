@@ -26,8 +26,7 @@
       <div class="hero-grid">
         <aside class="command-panel">
           <div class="intro-copy">
-            <h1>Игра без шума.</h1>
-            <p class="subtitle">Выберите стиль партии один раз — затем интерфейс уберёт лишнее и оставит только доску, ходы и тренера.</p>
+            <h1>BORK CHESS</h1>
           </div>
 
           <div class="setup-panel" id="setupPanel">
@@ -113,6 +112,13 @@
             <div class="turn-indicator" id="turnIndicator">—</div>
           </div>
 
+          <div class="quality-strip" id="qualityStats">
+            <div><span>Великолепно</span><strong id="brilliantMoves">0</strong></div>
+            <div><span>Сильно</span><strong id="strongMoves">0</strong></div>
+            <div><span>Слабо</span><strong id="weakMoves">0</strong></div>
+            <div><span>Упущено</span><strong id="missedMoves">0</strong></div>
+          </div>
+
           <section class="panel-block coach-block is-muted coach-strip" id="coachPanel">
             <div class="panel-header">
               <h3>Тренер</h3>
@@ -122,6 +128,7 @@
           </section>
 
           <div class="board-stage">
+            <div class="board-alert" id="boardAlert"></div>
             <div class="board-wrap">
               <div class="coordinates file-coordinates top-files" id="topFiles"></div>
               <div class="board-line">

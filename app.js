@@ -157,6 +157,8 @@ let pieceStyle = "bork";
 let activeStrategy = "center";
 let activeExperience = "free";
 let lastMoveAdvice = "";
+let qualityStats = { brilliant: 0, strong: 0, weak: 0, missed: 0 };
+let boardAlertTimer = null;
 
 const el = {
   board: document.querySelector("#board"),
@@ -184,6 +186,12 @@ const el = {
   tacticsPanel: document.querySelector("#tacticsPanel"),
   tacticLibrary: document.querySelector("#tacticLibrary"),
   strategyText: document.querySelector("#strategyText"),
+  qualityStats: document.querySelector("#qualityStats"),
+  brilliantMoves: document.querySelector("#brilliantMoves"),
+  strongMoves: document.querySelector("#strongMoves"),
+  weakMoves: document.querySelector("#weakMoves"),
+  missedMoves: document.querySelector("#missedMoves"),
+  boardAlert: document.querySelector("#boardAlert"),
   experienceGrid: document.querySelector("#experienceGrid"),
   wins: document.querySelector("#wins"),
   losses: document.querySelector("#losses"),
@@ -205,6 +213,32 @@ function getStats() {
 function setStats(stats) {
   localStorage.setItem("borkChessStats", JSON.stringify(stats));
   renderStats();
+}
+
+function resetQualityStats() {
+  qualityStats = { brilliant: 0, strong: 0, weak: 0, missed: 0 };
+  renderQualityStats();
+}
+
+function renderQualityStats() {
+  if (!el.qualityStats) return;
+  el.qualityStats.classList.toggle("hidden", difficulty === 5);
+  el.brilliantMoves.textContent = qualityStats.brilliant;
+  el.strongMoves.textContent = qualityStats.strong;
+  el.weakMoves.textContent = qualityStats.weak;
+  el.missedMoves.textContent = qualityStats.missed;
+}
+
+function isNoviceLevel() {
+  return Number(difficulty) === 1;
+}
+
+function showBoardAlert(message, tone = "accent") {
+  if (!el.boardAlert || !message) return;
+  window.clearTimeout(boardAlertTimer);
+  el.boardAlert.textContent = message;
+  el.boardAlert.className = `board-alert show ${tone}`;
+  boardAlertTimer = window.setTimeout(() => el.boardAlert.classList.remove("show"), 1800);
 }
 
 function renderStats() {
@@ -387,7 +421,8 @@ function updateMeta() {
   renderMoves();
   updateCoach();
 
-  el.undoBtn.disabled = !gameStarted || botThinking || game.history().length === 0;
+  el.undoBtn.disabled = !gameStarted || !isNoviceLevel() || botThinking || game.history().length === 0;
+  renderQualityStats();
 }
 
 function statusText() {
@@ -416,9 +451,19 @@ function makeMove(move) {
     selectedSquare = null;
     legalTargets = [];
     renderBoard();
+    announcePositionState();
     checkResultAndSave();
   }
   return result;
+}
+
+function announcePositionState() {
+  if (!gameStarted) return;
+  if (isCheckmate()) {
+    showBoardAlert("МАТ", "danger");
+  } else if (isCheck()) {
+    showBoardAlert("ШАХ", "accent");
+  }
 }
 
 function checkResultAndSave() {
@@ -453,7 +498,8 @@ function handleSquareClick(square) {
 
   if (selectedSquare && isLegalTarget(square)) {
     const move = legalTargets.find(item => item.to === square);
-    lastMoveAdvice = hintsMode ? explainPlayerMove(move) : "";
+    const moveReview = difficulty === 5 ? { message: "" } : reviewPlayerMove(move);
+    lastMoveAdvice = isNoviceLevel() ? moveReview.message : "";
     const result = makeMove(move);
     if (result && !isGameOver()) {
       window.setTimeout(botMove, 260);
@@ -480,21 +526,32 @@ function scoreMovesFor(color, depth = 1) {
   })).sort((a, b) => b.score - a.score);
 }
 
-function explainPlayerMove(move) {
+function reviewPlayerMove(move) {
   const scored = scoreMovesFor(playerColor, Math.min(2, LEVELS[difficulty].depth));
   const best = scored[0];
   const played = scored.find(item => item.move.from === move.from && item.move.to === move.to && (item.move.promotion || "q") === (move.promotion || "q"));
 
-  if (!best || !played) return "";
+  if (!best || !played) return { kind: "strong", message: "" };
 
   const loss = best.score - played.score;
-  if (loss < 25) {
-    return `Сильно: ${move.san} — ${moveReason(move)}.`;
+  if (loss < 12) {
+    qualityStats.brilliant += 1;
+    return { kind: "brilliant", message: `Великолепно: ${move.san} — ${moveReason(move)}.` };
   }
-  if (loss < 90) {
-    return `Играбельно: ${move.san}. Точнее ${best.move.san} — ${moveReason(best.move)}.`;
+  if (loss < 45) {
+    qualityStats.strong += 1;
+    return { kind: "strong", message: `Сильно: ${move.san} — ${moveReason(move)}.` };
   }
-  return `Слабо: ${move.san}. Лучше ${best.move.san} — ${moveReason(best.move)}.`;
+  if (loss < 110) {
+    qualityStats.missed += 1;
+    return { kind: "missed", message: `Упущено: ${move.san}. Лучше ${best.move.san} — ${moveReason(best.move)}.` };
+  }
+  qualityStats.weak += 1;
+  return { kind: "weak", message: `Слабо: ${move.san}. Лучше ${best.move.san} — ${moveReason(best.move)}.` };
+}
+
+function explainPlayerMove(move) {
+  return reviewPlayerMove(move).message;
 }
 
 function getOpeningMatch() {
@@ -551,6 +608,11 @@ function updateCoach() {
   const opening = getOpeningMatch();
   el.openingBadge.textContent = opening ? opening.name : "План";
   el.coachPanel.classList.toggle("is-muted", !hintsMode);
+
+  if (!isNoviceLevel()) {
+    el.coachText.textContent = "";
+    return;
+  }
 
   if (!hintsMode) {
     el.coachText.textContent = "Подсказки выключены — партия остаётся чистой.";
@@ -759,7 +821,7 @@ function returnToSetup() {
   legalTargets = [];
   lastMove = null;
   lastMoveAdvice = "";
-  document.body.classList.remove("game-active");
+  document.body.classList.remove("game-active", "novice-active");
   if (game) renderBoard();
   toast("Выберите настройки новой партии");
 }
@@ -771,6 +833,7 @@ function startGame(options = {}) {
   game = new ChessCtor();
   gameStarted = true;
   gameResultSaved = false;
+  resetQualityStats();
   selectedSquare = null;
   legalTargets = [];
   lastMove = null;
@@ -784,7 +847,12 @@ function startGame(options = {}) {
     button.classList.toggle("active", Number(button.dataset.level) === difficulty);
   });
 
+  hintsMode = isNoviceLevel();
+  noviceMode = isNoviceLevel();
+  el.hintsModeToggle.checked = hintsMode;
+  el.noviceModeToggle.checked = noviceMode;
   document.body.classList.add("game-active");
+  document.body.classList.toggle("novice-active", isNoviceLevel());
   toast(`Партия началась: ${LEVELS[difficulty].label}`);
   renderBoard();
 
@@ -808,6 +876,7 @@ function undoMove() {
   const history = game.history({ verbose: true });
   lastMove = history.length ? { from: history.at(-1).from, to: history.at(-1).to } : null;
   gameResultSaved = false;
+  resetQualityStats();
   selectedSquare = null;
   legalTargets = [];
   renderBoard();
