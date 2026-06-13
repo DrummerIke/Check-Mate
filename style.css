@@ -743,3 +743,76 @@ body.game-active .top-line {
 .move-list {
   max-height: 230px;
 }
+
+/* Premium correction: fewer setup controls, centered guidance, BORK palette. */
+:root {
+  --text: #e6e0de;
+  --muted: rgba(230, 224, 222, 0.68);
+  --muted-2: rgba(230, 224, 222, 0.46);
+  --accent: #ef6f2e;
+  --bg-soft: #261f1e;
+}
+
+body {
+  color: #e6e0de;
+}
+
+body.experience-free:not(.game-active) .training-panel {
+  display: none;
+}
+
+body:not(.game-active) .setup-panel {
+  gap: 16px;
+}
+
+body:not(.game-active) .experience-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+body:not(.game-active) .experience-card {
+  text-align: center;
+  min-height: 86px;
+  display: grid;
+  place-content: center;
+}
+
+body:not(.game-active) .experience-card strong {
+  font-size: 15px;
+}
+
+body:not(.game-active) .settings-drawer {
+  background: rgba(230, 224, 222, 0.035);
+}
+
+.coach-strip {
+  text-align: center;
+}
+
+.coach-strip .panel-header {
+  justify-content: center;
+}
+
+.coach-strip p {
+  max-width: 980px;
+  margin: 0 auto;
+  font-size: clamp(15px, 1.05vw, 18px);
+  line-height: 1.55;
+}
+
+.chess-board {
+  border: 2px solid #ef6f2e;
+}
+
+.bork-pieces .piece.white-piece {
+  color: #e6e0de;
+}
+
+.bork-pieces .piece.black-piece {
+  color: #261f1e;
+}
+
+@media (max-width: 760px) {
+  body:not(.game-active) .experience-grid {
+    grid-template-columns: 1fr;
+  }
+}

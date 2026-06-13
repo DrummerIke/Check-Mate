@@ -214,6 +214,12 @@ function renderStats() {
   el.draws.textContent = stats.draws;
 }
 
+function applyExperienceState() {
+  document.body.classList.toggle("experience-free", activeExperience === "free");
+  document.body.classList.toggle("experience-coach", activeExperience === "coach");
+  document.body.classList.toggle("experience-combo", activeExperience === "combo");
+}
+
 function toast(message) {
   el.toast.textContent = message;
   el.toast.classList.add("show");
@@ -864,6 +870,7 @@ function initInteractions() {
   document.querySelectorAll("[data-experience]").forEach(button => {
     button.addEventListener("click", () => {
       activeExperience = button.dataset.experience;
+      applyExperienceState();
       document.querySelectorAll("[data-experience]").forEach(item => item.classList.remove("active"));
       button.classList.add("active");
       if (activeExperience !== "free") {
@@ -896,6 +903,7 @@ function initInteractions() {
 
 async function init() {
   renderStats();
+  applyExperienceState();
   renderTacticLibrary();
   renderTactic();
   el.strategyText.textContent = STRATEGIES[activeStrategy];
