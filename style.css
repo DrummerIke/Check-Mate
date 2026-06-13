@@ -695,3 +695,51 @@ body.game-active .side-panel {
     grid-template-columns: 0.7fr 1.2fr 1fr;
   }
 }
+
+/* Quiet luxury pass: fewer counters, more board, calmer study rail. */
+body.game-active .metric-grid {
+  display: none;
+}
+
+body.game-active .game-card {
+  padding: clamp(16px, 2vw, 24px);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.045), transparent 18%),
+    rgba(18, 15, 13, 0.78);
+}
+
+body.game-active .side-panel {
+  background:
+    linear-gradient(180deg, rgba(255, 106, 33, 0.055), transparent 22%),
+    rgba(20, 17, 15, 0.72);
+}
+
+body.game-active .chess-board {
+  border-radius: 28px;
+  box-shadow:
+    0 42px 110px rgba(0,0,0,0.46),
+    0 0 0 1px rgba(255,255,255,0.10),
+    inset 0 0 0 1px rgba(255,255,255,0.08);
+}
+
+body.game-active .top-line {
+  padding: 0 4px;
+}
+
+.action-bar button {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+}
+
+.tactics-block h3,
+.panel-block summary,
+.coach-strip h3 {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.move-list {
+  max-height: 230px;
+}
