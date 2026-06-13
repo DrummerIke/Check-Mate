@@ -1,4 +1,4 @@
-const CACHE_NAME = "bork-chess-v4";
+const CACHE_NAME = "bork-chess-v5";
 const ASSETS = [
   "./",
   "./index.html",

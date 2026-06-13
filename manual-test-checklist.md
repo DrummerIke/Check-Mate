@@ -9,7 +9,9 @@ Run a local server and verify the real browser interactions. `node --check` is n
 - Color buttons are clickable: `Белые`, `Чёрные`, `Случайно`.
 - `Настройки` opens the menu and `Закрыть` closes it.
 - `Начать партию` switches the body to game state and shows the board.
+- Board coordinates are visible on all four sides.
 - Board squares are clickable; selecting a piece shows legal move dots/rings.
+- The opponent last move has a visible cool/graphite highlight with a thin warm edge.
 - `Совет` opens the compact hint card; `Понятно` closes it.
 - `Меню` opens the menu; backdrop click and `Закрыть` close it.
 - Menu actions work: `Новая партия`, `Сдаться`, `Развернуть доску`, `Скопировать PGN`.
@@ -19,4 +21,5 @@ Run a local server and verify the real browser interactions. `node --check` is n
 
 - Launch card is centered/balanced, with no empty right-side layout.
 - Same start/menu/board/hint interactions work with a mouse.
+- Menu collapses with `Закрыть` and does not stay pinned open on the side.
 - Game board remains the main object; secondary menu/panel stays narrow.
