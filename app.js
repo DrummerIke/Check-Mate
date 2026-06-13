@@ -105,6 +105,13 @@ const TACTICS = [
   { title: "Матовая сеть", text: "Не просто шах, а ограничение всех путей короля. Проверяйте поля бегства перед жертвой." },
 ];
 
+const STRATEGIES = {
+  center: "Контролируйте центр пешками и фигурами — так у фигур появляется больше маршрутов.",
+  king: "Сначала безопасность короля: рокировка, отсутствие открытых линий рядом и минимум слабых полей.",
+  attack: "Атака работает, когда фигур у цели больше, чем защитников. Подведите фигуры до жертвы.",
+  endgame: "В эндшпиле активный король и проходные пешки важнее красивых шахов."
+};
+
 let ChessCtor = null;
 let game = null;
 let selectedSquare = null;
@@ -116,8 +123,12 @@ let botThinking = false;
 let lastMove = null;
 let gameStarted = false;
 let gameResultSaved = false;
-let noviceMode = true;
+let noviceMode = false;
+let hintsMode = false;
 let tacticIndex = 0;
+let pieceStyle = "bork";
+let activeStrategy = "center";
+let lastMoveAdvice = "";
 
 const el = {
   board: document.querySelector("#board"),
@@ -134,11 +145,15 @@ const el = {
   toast: document.querySelector("#toast"),
   copyPgnBtn: document.querySelector("#copyPgnBtn"),
   noviceModeToggle: document.querySelector("#noviceModeToggle"),
+  hintsModeToggle: document.querySelector("#hintsModeToggle"),
+  pieceStyleBtn: document.querySelector("#pieceStyleBtn"),
+  coachPanel: document.querySelector("#coachPanel"),
   coachText: document.querySelector("#coachText"),
   openingBadge: document.querySelector("#openingBadge"),
   nextTacticBtn: document.querySelector("#nextTacticBtn"),
   tacticTitle: document.querySelector("#tacticTitle"),
   tacticText: document.querySelector("#tacticText"),
+  strategyText: document.querySelector("#strategyText"),
   wins: document.querySelector("#wins"),
   losses: document.querySelector("#losses"),
   draws: document.querySelector("#draws"),
@@ -302,8 +317,9 @@ function renderBoard() {
     ].filter(Boolean).join(" ");
 
     const pieceSymbol = piece ? PIECES[`${piece.color}${piece.type}`] : "";
+    const pieceClass = piece ? `${piece.color === "w" ? "white" : "black"}-piece` : "";
     return `<button class="${classes}" data-square="${square}" aria-label="${square}">
-      <span class="piece">${pieceSymbol}</span>
+      <span class="piece ${pieceClass}">${pieceSymbol}</span>
     </button>`;
   }).join("");
 
@@ -401,6 +417,7 @@ function handleSquareClick(square) {
 
   if (selectedSquare && isLegalTarget(square)) {
     const move = legalTargets.find(item => item.to === square);
+    lastMoveAdvice = hintsMode ? explainPlayerMove(move) : "";
     const result = makeMove(move);
     if (result && !isGameOver()) {
       window.setTimeout(botMove, 260);
@@ -418,6 +435,30 @@ function handleSquareClick(square) {
   selectedSquare = null;
   legalTargets = [];
   renderBoard();
+}
+
+function scoreMovesFor(color, depth = 1) {
+  return game.moves({ verbose: true }).map(move => ({
+    move,
+    score: evaluateMove(move, color, depth),
+  })).sort((a, b) => b.score - a.score);
+}
+
+function explainPlayerMove(move) {
+  const scored = scoreMovesFor(playerColor, Math.min(2, LEVELS[difficulty].depth));
+  const best = scored[0];
+  const played = scored.find(item => item.move.from === move.from && item.move.to === move.to && (item.move.promotion || "q") === (move.promotion || "q"));
+
+  if (!best || !played) return "";
+
+  const loss = best.score - played.score;
+  if (loss < 25) {
+    return `Сильный ход: ${move.san}. Он почти не уступает лучшему варианту и сохраняет инициативу.`;
+  }
+  if (loss < 90) {
+    return `Нормальный ход: ${move.san}. Но сильнее выглядело ${best.move.san}: там больше активности или меньше слабостей.`;
+  }
+  return `Слабый ход: ${move.san}. Лучше было ${best.move.san}: этот вариант заметно лучше по материалу, безопасности короля или активности фигур.`;
 }
 
 function getOpeningMatch() {
@@ -453,18 +494,26 @@ function updateCoach() {
 
   const opening = getOpeningMatch();
   el.openingBadge.textContent = opening ? opening.name : "Позиция";
+  el.coachPanel.classList.toggle("is-muted", !hintsMode);
+
+  if (!hintsMode) {
+    el.coachText.textContent = "Подсказки выключены. Включите тренера слева, когда захотите разобрать идеи позиции.";
+    return;
+  }
 
   if (!gameStarted) {
-    el.coachText.textContent = "Начните партию — я подскажу дебют, планы и тактические идеи.";
+    el.coachText.textContent = "Начните партию — тренер будет объяснять дебют, планы и качество ваших ходов.";
     return;
   }
 
   const activeSide = game.turn() === playerColor ? "ваш ход" : "ход соперника";
   const checks = isCheck() ? " Сейчас шах: сначала уберите угрозу королю." : "";
-  const openingText = opening ? `Мы в дебюте: ${opening.name}. ${opening.idea}` : "Дебютная схема уже не очевидна: играйте по принципам — безопасность короля, активные фигуры, контроль центра.";
-  const noviceText = noviceMode ? ` ${materialSummary()} Перед ходом проверьте: есть ли шахи, взятия и угрозы у обеих сторон.` : "";
+  const openingText = opening ? `Дебют: ${opening.name}. ${opening.idea}` : "Дебютная схема уже не очевидна: играйте по принципам — безопасность короля, активные фигуры, контроль центра.";
+  const strategyText = STRATEGIES[activeStrategy] ? ` Фокус тренировки: ${STRATEGIES[activeStrategy]}` : "";
+  const noviceText = noviceMode ? ` ${materialSummary()} Перед ходом проверьте шахи, взятия и угрозы за обе стороны.` : "";
+  const moveText = lastMoveAdvice ? ` ${lastMoveAdvice}` : "";
 
-  el.coachText.textContent = `${openingText} Сейчас ${activeSide}.${checks}${noviceText}`;
+  el.coachText.textContent = `${openingText} Сейчас ${activeSide}.${checks}${strategyText}${noviceText}${moveText}`;
 }
 
 function renderTactic() {
@@ -632,6 +681,7 @@ function startGame(options = {}) {
   selectedSquare = null;
   legalTargets = [];
   lastMove = null;
+  lastMoveAdvice = "";
 
   document.querySelectorAll("[data-color]").forEach(button => {
     button.classList.toggle("active", button.dataset.color === playerColor);
@@ -641,6 +691,7 @@ function startGame(options = {}) {
     button.classList.toggle("active", Number(button.dataset.level) === difficulty);
   });
 
+  document.body.classList.add("game-active");
   toast(`Партия началась: ${LEVELS[difficulty].label}`);
   renderBoard();
 
@@ -707,10 +758,30 @@ function initInteractions() {
     renderBoard();
   });
   el.copyPgnBtn.addEventListener("click", copyPgn);
+  el.hintsModeToggle.addEventListener("change", () => {
+    hintsMode = el.hintsModeToggle.checked;
+    updateCoach();
+    toast(hintsMode ? "Подсказки тренера включены" : "Подсказки тренера выключены");
+  });
   el.noviceModeToggle.addEventListener("change", () => {
     noviceMode = el.noviceModeToggle.checked;
     updateCoach();
-    toast(noviceMode ? "Режим новичка включён" : "Режим новичка выключен");
+    toast(noviceMode ? "Подробные объяснения включены" : "Подробные объяснения выключены");
+  });
+  el.pieceStyleBtn.addEventListener("click", () => {
+    pieceStyle = pieceStyle === "bork" ? "classic" : "bork";
+    document.body.classList.toggle("bork-pieces", pieceStyle === "bork");
+    document.body.classList.toggle("classic-pieces", pieceStyle === "classic");
+    el.pieceStyleBtn.textContent = pieceStyle === "bork" ? "Фигуры: BORK" : "Фигуры: классика";
+  });
+  document.querySelectorAll("[data-strategy]").forEach(button => {
+    button.addEventListener("click", () => {
+      activeStrategy = button.dataset.strategy;
+      document.querySelectorAll("[data-strategy]").forEach(item => item.classList.remove("active"));
+      button.classList.add("active");
+      el.strategyText.textContent = STRATEGIES[activeStrategy];
+      updateCoach();
+    });
   });
   el.nextTacticBtn.addEventListener("click", () => {
     tacticIndex += 1;
@@ -721,6 +792,7 @@ function initInteractions() {
 async function init() {
   renderStats();
   renderTactic();
+  el.strategyText.textContent = STRATEGIES[activeStrategy];
   initInteractions();
 
   try {

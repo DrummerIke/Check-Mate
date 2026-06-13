@@ -9,147 +9,145 @@
   <link rel="preconnect" href="https://esm.sh">
   <link rel="stylesheet" href="./style.css" />
 </head>
-<body>
+<body class="bork-pieces">
   <main class="app-shell">
     <section class="hero-card">
-      <div class="brand-row">
-        <div class="brand-mark">BORK</div>
-        <div class="status-pill" id="engineStatus">Загрузка движка</div>
-      </div>
+      <header class="brand-row">
+        <div>
+          <p class="eyebrow">PRIVATE GAME ROOM</p>
+          <div class="brand-mark">BORK CHESS</div>
+        </div>
+        <div class="header-actions">
+          <button class="tiny-btn" id="pieceStyleBtn">Фигуры: BORK</button>
+          <div class="status-pill" id="engineStatus">Загрузка движка</div>
+        </div>
+      </header>
 
       <div class="hero-grid">
-        <div class="intro">
-          <p class="eyebrow">PRIVATE GAME ROOM</p>
-          <h1>BORK CHESS</h1>
-          <p class="subtitle">
-            Интеллектуальная партия в эстетике точности. Выберите цвет, уровень сложности и начните игру против AI-бота.
-          </p>
+        <aside class="command-panel">
+          <div class="intro-copy">
+            <h1>Игра без шума.</h1>
+            <p class="subtitle">Сначала партия. Подсказки, тактика и настройки появляются только когда они действительно нужны.</p>
+          </div>
 
           <div class="setup-panel" id="setupPanel">
-            <div class="control-group">
-              <span class="control-label">Ваш цвет</span>
+            <div class="control-group compact-control">
+              <span class="control-label">Цвет</span>
               <div class="segmented">
                 <button class="segment active" data-color="w">Белые</button>
                 <button class="segment" data-color="b">Чёрные</button>
               </div>
             </div>
 
-            <div class="control-group">
-              <span class="control-label">Уровень сложности</span>
-              <div class="difficulty-grid" id="difficultyGrid">
-                <button class="difficulty active" data-level="1">
-                  <strong>Новичок</strong>
-                  <span>мягкая игра и объяснения</span>
-                </button>
-                <button class="difficulty" data-level="2">
-                  <strong>Классика</strong>
-                  <span>держит материал</span>
-                </button>
-                <button class="difficulty" data-level="3">
-                  <strong>Стратегия</strong>
-                  <span>считает на ход вперёд</span>
-                </button>
-                <button class="difficulty" data-level="4">
-                  <strong>Эксперт</strong>
-                  <span>играет плотнее</span>
-                </button>
-                <button class="difficulty bork-mode" data-level="5">
-                  <strong>BORK Mode</strong>
-                  <span>холодный расчёт</span>
-                </button>
+            <details class="settings-drawer" open>
+              <summary>Настройка партии</summary>
+              <div class="control-group">
+                <span class="control-label">Сила соперника</span>
+                <div class="difficulty-grid" id="difficultyGrid">
+                  <button class="difficulty active" data-level="1"><strong>Новичок</strong><span>обучающий темп</span></button>
+                  <button class="difficulty" data-level="2"><strong>Классика</strong><span>ровная игра</span></button>
+                  <button class="difficulty" data-level="3"><strong>Стратегия</strong><span>позиционный расчёт</span></button>
+                  <button class="difficulty" data-level="4"><strong>Эксперт</strong><span>жёсткая защита</span></button>
+                  <button class="difficulty bork-mode" data-level="5"><strong>BORK Mode</strong><span>холодный расчёт</span></button>
+                </div>
               </div>
-            </div>
+            </details>
 
-            <label class="coach-toggle">
-              <input type="checkbox" id="noviceModeToggle" checked />
-              <span>Режим новичка: объяснять идеи, угрозы и планы</span>
-            </label>
+            <div class="mode-switches">
+              <label class="switch-line">
+                <input type="checkbox" id="hintsModeToggle" />
+                <span>Подсказки тренера</span>
+              </label>
+              <label class="switch-line">
+                <input type="checkbox" id="noviceModeToggle" />
+                <span>Подробные объяснения</span>
+              </label>
+            </div>
 
             <div class="cta-row">
               <button class="primary-btn" id="startBtn">Начать партию</button>
               <button class="ghost-btn" id="demoBtn">Быстрый старт</button>
             </div>
           </div>
-        </div>
 
-        <div class="game-card">
+          <div class="training-panel" id="trainingPanel">
+            <div class="panel-header">
+              <h3>Тренировка стратегии</h3>
+              <span class="tiny-badge">опционально</span>
+            </div>
+            <div class="strategy-grid" id="strategyGrid">
+              <button class="strategy-card active" data-strategy="center">Центр</button>
+              <button class="strategy-card" data-strategy="king">Король</button>
+              <button class="strategy-card" data-strategy="attack">Атака</button>
+              <button class="strategy-card" data-strategy="endgame">Эндшпиль</button>
+            </div>
+            <p id="strategyText">Контролируйте центр пешками и фигурами — так у фигур появляется больше маршрутов.</p>
+          </div>
+        </aside>
+
+        <section class="game-card">
           <div class="top-line">
             <div>
-              <span class="mini-label">Текущий статус</span>
+              <span class="mini-label">Статус партии</span>
               <h2 id="gameStatus">Готов к партии</h2>
             </div>
             <div class="turn-indicator" id="turnIndicator">—</div>
           </div>
 
-          <div class="board-wrap">
-            <div class="coordinates file-coordinates top-files" id="topFiles"></div>
-            <div class="board-line">
-              <div class="coordinates rank-coordinates left-ranks" id="leftRanks"></div>
-              <div class="chess-board" id="board" aria-label="Шахматная доска"></div>
-              <div class="coordinates rank-coordinates right-ranks" id="rightRanks"></div>
+          <div class="board-stage">
+            <div class="board-wrap">
+              <div class="coordinates file-coordinates top-files" id="topFiles"></div>
+              <div class="board-line">
+                <div class="coordinates rank-coordinates left-ranks" id="leftRanks"></div>
+                <div class="chess-board" id="board" aria-label="Шахматная доска"></div>
+                <div class="coordinates rank-coordinates right-ranks" id="rightRanks"></div>
+              </div>
+              <div class="coordinates file-coordinates bottom-files" id="bottomFiles"></div>
             </div>
-            <div class="coordinates file-coordinates bottom-files" id="bottomFiles"></div>
           </div>
 
           <div class="action-bar">
             <button id="newGameBtn">Новая партия</button>
             <button id="undoBtn">Отменить ход</button>
-            <button id="flipBtn">Развернуть доску</button>
+            <button id="flipBtn">Развернуть</button>
           </div>
-        </div>
+        </section>
 
         <aside class="side-panel">
           <div class="metric-grid">
-            <div class="metric">
-              <span>Победы</span>
-              <strong id="wins">0</strong>
-            </div>
-            <div class="metric">
-              <span>Поражения</span>
-              <strong id="losses">0</strong>
-            </div>
-            <div class="metric">
-              <span>Ничьи</span>
-              <strong id="draws">0</strong>
-            </div>
+            <div class="metric"><span>Победы</span><strong id="wins">0</strong></div>
+            <div class="metric"><span>Поражения</span><strong id="losses">0</strong></div>
+            <div class="metric"><span>Ничьи</span><strong id="draws">0</strong></div>
           </div>
 
-          <div class="panel-block">
+          <section class="panel-block coach-block is-muted" id="coachPanel">
             <div class="panel-header">
-              <h3>Ходы партии</h3>
+              <h3>Тренер</h3>
+              <span class="tiny-badge" id="openingBadge">Позиция</span>
+            </div>
+            <p id="coachText">Включите подсказки, если хотите разбирать силу ходов и планы.</p>
+          </section>
+
+          <details class="panel-block tactics-block" id="tacticsPanel">
+            <summary>Тактика</summary>
+            <strong id="tacticTitle">Связка</strong>
+            <p id="tacticText">Фигура не может уйти, потому что за ней стоит более ценная фигура или король.</p>
+            <button class="tiny-btn" id="nextTacticBtn">Следующая идея</button>
+          </details>
+
+          <details class="panel-block" open>
+            <summary>Ходы партии</summary>
+            <div class="panel-header compact-header">
+              <span></span>
               <button class="tiny-btn" id="copyPgnBtn">PGN</button>
             </div>
             <ol class="move-list" id="moveList"></ol>
-          </div>
+          </details>
 
-          <div class="panel-block coach-block">
-            <div class="panel-header">
-              <h3>Тренер по позиции</h3>
-              <span class="tiny-badge" id="openingBadge">Дебют</span>
-            </div>
-            <p id="coachText">Начните партию — я подскажу дебют, планы и тактические идеи.</p>
-          </div>
-
-          <div class="panel-block tactics-block">
-            <div class="panel-header">
-              <h3>Тактика</h3>
-              <button class="tiny-btn" id="nextTacticBtn">Следующая</button>
-            </div>
-            <strong id="tacticTitle">Связка</strong>
-            <p id="tacticText">Фигура не может уйти, потому что за ней стоит более ценная фигура или король.</p>
-          </div>
-
-          <div class="panel-block">
-            <h3>Позиция</h3>
+          <details class="panel-block technical-block">
+            <summary>FEN позиции</summary>
             <textarea id="fenBox" readonly spellcheck="false"></textarea>
-          </div>
-
-          <div class="panel-block note">
-            <h3>Прототип</h3>
-            <p>
-              Версия работает как статический сайт: подходит для GitHub Pages и вставки в Google Sites через iframe.
-            </p>
-          </div>
+          </details>
         </aside>
       </div>
     </section>
