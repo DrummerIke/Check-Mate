@@ -1,4 +1,15 @@
 import { StockfishEngine, STOCKFISH_LEVELS } from "./engine.js";
+import {
+  initAudio,
+  playCapture,
+  playCheck,
+  playGameOver,
+  playIllegal,
+  playMove,
+  playStart,
+  playToggle,
+  setSoundEnabled,
+} from "./audio.js";
 
 const PIECES = {
   wp: "♙", wn: "♘", wb: "♗", wr: "♖", wq: "♕", wk: "♔",
@@ -166,6 +177,13 @@ let qualityStats = { brilliant: 0, strong: 0, weak: 0, missed: 0 };
 let boardAlertTimer = null;
 let stockfishEngine = null;
 let stockfishReady = false;
+let soundEnabled = true;
+let voiceEnabled = false;
+let pendingPromotion = null;
+let illegalSquare = null;
+let illegalTimer = null;
+let activeSheetTab = "moves";
+let coachDetail = false;
 
 const el = {
   board: document.querySelector("#board"),
@@ -177,6 +195,7 @@ const el = {
   newGameBtn: document.querySelector("#newGameBtn"),
   undoBtn: document.querySelector("#undoBtn"),
   flipBtn: document.querySelector("#flipBtn"),
+  hintBtn: document.querySelector("#hintBtn"),
   drawBtn: document.querySelector("#drawBtn"),
   resignBtn: document.querySelector("#resignBtn"),
   moveList: document.querySelector("#moveList"),
@@ -185,10 +204,16 @@ const el = {
   copyPgnBtn: document.querySelector("#copyPgnBtn"),
   noviceModeToggle: document.querySelector("#noviceModeToggle"),
   autoFlipToggle: document.querySelector("#autoFlipToggle"),
+  soundToggle: document.querySelector("#soundToggle"),
+  voiceToggle: document.querySelector("#voiceToggle"),
   hintsModeToggle: document.querySelector("#hintsModeToggle"),
   pieceStyleBtn: document.querySelector("#pieceStyleBtn"),
   coachPanel: document.querySelector("#coachPanel"),
   coachText: document.querySelector("#coachText"),
+  coachIdeaBtn: document.querySelector("#coachIdeaBtn"),
+  coachSpeakBtn: document.querySelector("#coachSpeakBtn"),
+  coachMoreBtn: document.querySelector("#coachMoreBtn"),
+  coachTags: document.querySelector("#coachTags"),
   openingBadge: document.querySelector("#openingBadge"),
   nextTacticBtn: document.querySelector("#nextTacticBtn"),
   tacticTitle: document.querySelector("#tacticTitle"),
@@ -211,6 +236,10 @@ const el = {
   resultNewBtn: document.querySelector("#resultNewBtn"),
   resultPgnBtn: document.querySelector("#resultPgnBtn"),
   resultCloseBtn: document.querySelector("#resultCloseBtn"),
+  promotionModal: document.querySelector("#promotionModal"),
+  mobileMenuBtn: document.querySelector("#mobileMenuBtn"),
+  sidePanel: document.querySelector("#sidePanel"),
+  sheetCloseBtn: document.querySelector("#sheetCloseBtn"),
   experienceGrid: document.querySelector("#experienceGrid"),
   wins: document.querySelector("#wins"),
   losses: document.querySelector("#losses"),
@@ -243,7 +272,7 @@ function setPvpStats(stats) {
 }
 
 function saveSettings() {
-  localStorage.setItem("borkChessSettings", JSON.stringify({ gameMode, playerColor, difficulty, boardOrientation, autoFlip, pieceStyle }));
+  localStorage.setItem("borkChessSettings", JSON.stringify({ gameMode, playerColor, difficulty, boardOrientation, autoFlip, pieceStyle, soundEnabled, voiceEnabled, activeExperience }));
 }
 
 function loadSettings() {
@@ -254,6 +283,9 @@ function loadSettings() {
     playerColor = settings.playerColor || playerColor;
     difficulty = Number(settings.difficulty || difficulty);
     autoFlip = settings.autoFlip ?? autoFlip;
+    soundEnabled = settings.soundEnabled ?? soundEnabled;
+    voiceEnabled = settings.voiceEnabled ?? voiceEnabled;
+    activeExperience = settings.activeExperience || activeExperience;
     pieceStyle = settings.pieceStyle || pieceStyle;
   } catch {}
 }
@@ -263,6 +295,10 @@ function syncSettingsUi() {
   document.querySelectorAll("[data-color]").forEach(button => button.classList.toggle("active", button.dataset.color === playerColor));
   document.querySelectorAll("[data-level]").forEach(button => button.classList.toggle("active", Number(button.dataset.level) === difficulty));
   el.autoFlipToggle.checked = autoFlip;
+  el.soundToggle.checked = soundEnabled;
+  el.voiceToggle.checked = voiceEnabled;
+  setSoundEnabled(soundEnabled);
+  document.querySelectorAll("[data-experience]").forEach(button => button.classList.toggle("active", button.dataset.experience === activeExperience));
   document.body.classList.toggle("bork-pieces", pieceStyle === "bork");
   document.body.classList.toggle("classic-pieces", pieceStyle === "classic");
   el.pieceStyleBtn.textContent = pieceStyle === "bork" ? "Фигуры: BORK" : "Фигуры: классика";
@@ -451,6 +487,7 @@ function renderBoard() {
       capture ? "capture" : "",
       last ? "last-move" : "",
       last && lastMoveBy === "bot" ? "opponent-move" : "",
+      illegalSquare === square ? "illegal-flash" : "",
       check ? "check" : "",
     ].filter(Boolean).join(" ");
 
@@ -489,6 +526,8 @@ function updateMeta() {
   updateCoach();
 
   el.undoBtn.disabled = !gameStarted || !isNoviceLevel() || botThinking || game.history().length === 0;
+  document.body.classList.toggle("ai-thinking", botThinking);
+  renderSheet();
   renderQualityStats();
 }
 
@@ -515,6 +554,8 @@ function normalizeMove(move) {
 function makeMove(move, actor = "player") {
   const result = game.move(normalizeMove(move));
   if (result) {
+    if (result.captured) playCapture();
+    else playMove();
     lastMove = { from: result.from, to: result.to };
     lastMoveBy = actor;
     selectedSquare = null;
@@ -530,8 +571,12 @@ function announcePositionState() {
   if (!gameStarted) return;
   if (isCheckmate()) {
     showBoardAlert("МАТ", "danger");
+    playGameOver();
+    speakCoach("Мат. Партия завершена.", true);
   } else if (isCheck()) {
     showBoardAlert("ШАХ", "accent");
+    playCheck();
+    speakCoach("Шах. Проверьте безопасность короля.");
   }
 }
 
@@ -549,6 +594,34 @@ function showResultModal(title, summary) {
 function closeResultModal() {
   el.resultModal?.classList.remove("show");
   el.resultModal?.setAttribute("aria-hidden", "true");
+}
+
+function renderSheet() {
+  document.querySelectorAll("[data-sheet-tab]").forEach(button => button.classList.toggle("active", button.dataset.sheetTab === activeSheetTab));
+  document.querySelectorAll("[data-sheet-panel]").forEach(panel => panel.classList.toggle("sheet-active", panel.dataset.sheetPanel === activeSheetTab));
+}
+
+function speakCoach(text = el.coachText?.textContent || "", force = false) {
+  if ((!voiceEnabled && !force) || !text || !("speechSynthesis" in window)) return;
+  const clean = text.replace(/\s+/g, " ").slice(0, 180);
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(clean);
+  utterance.lang = "ru-RU";
+  utterance.rate = 0.92;
+  utterance.pitch = 0.86;
+  utterance.volume = 0.72;
+  window.speechSynthesis.speak(utterance);
+}
+
+function flashIllegal(square) {
+  illegalSquare = square;
+  playIllegal();
+  window.clearTimeout(illegalTimer);
+  renderBoard();
+  illegalTimer = window.setTimeout(() => {
+    illegalSquare = null;
+    renderBoard();
+  }, 260);
 }
 
 function checkResultAndSave() {
@@ -597,19 +670,12 @@ function handleSquareClick(square) {
   const clickedOwnPiece = piece && piece.color === activeColor;
 
   if (selectedSquare && isLegalTarget(square)) {
-    const move = legalTargets.find(item => item.to === square);
-    const movingColor = game.turn();
-    const moveReview = difficulty === 5 ? { message: "" } : reviewPlayerMove(move, movingColor);
-    lastMoveAdvice = isNoviceLevel() ? moveReview.message : "";
-    const result = makeMove(move, "player");
-    if (result && !isGameOver()) {
-      if (gameMode === "ai") {
-        window.setTimeout(botMove, 260);
-      } else if (autoFlip) {
-        boardOrientation = game.turn();
-        renderBoard();
-      }
+    const promotionMoves = legalTargets.filter(item => item.to === square && item.promotion);
+    if (promotionMoves.length > 1) {
+      showPromotionPicker(promotionMoves);
+      return;
     }
+    completePlayerMove(legalTargets.find(item => item.to === square));
     return;
   }
 
@@ -620,9 +686,38 @@ function handleSquareClick(square) {
     return;
   }
 
+  if (piece || selectedSquare) flashIllegal(square);
   selectedSquare = null;
   legalTargets = [];
   renderBoard();
+}
+
+function showPromotionPicker(moves) {
+  pendingPromotion = moves;
+  el.promotionModal?.classList.add("show");
+  el.promotionModal?.setAttribute("aria-hidden", "false");
+}
+
+function closePromotionPicker() {
+  pendingPromotion = null;
+  el.promotionModal?.classList.remove("show");
+  el.promotionModal?.setAttribute("aria-hidden", "true");
+}
+
+function completePlayerMove(move) {
+  const movingColor = game.turn();
+  const moveReview = difficulty === 5 ? { message: "" } : reviewPlayerMove(move, movingColor);
+  lastMoveAdvice = isNoviceLevel() ? moveReview.message : "";
+  const result = makeMove(move, "player");
+  if (moveReview.kind === "weak" || moveReview.kind === "missed") speakCoach(moveReview.message);
+  if (result && !isGameOver()) {
+    if (gameMode === "ai") {
+      window.setTimeout(botMove, 260);
+    } else if (autoFlip) {
+      boardOrientation = game.turn();
+      renderBoard();
+    }
+  }
 }
 
 function scoreMovesFor(color, depth = 1) {
@@ -715,12 +810,12 @@ function updateCoach() {
   el.openingBadge.textContent = opening ? opening.name : "План";
   el.coachPanel.classList.toggle("is-muted", !hintsMode);
 
-  if (!isNoviceLevel()) {
+  if (!isNoviceLevel() && activeExperience === "free" && !hintsMode) {
     el.coachText.textContent = "";
     return;
   }
 
-  if (!hintsMode) {
+  if (!hintsMode && activeExperience === "free") {
     el.coachText.textContent = "Подсказки выключены — партия остаётся чистой.";
     return;
   }
@@ -730,16 +825,19 @@ function updateCoach() {
     return;
   }
 
-  const activeSide = game.turn() === playerColor ? "Ваш ход." : "Ход AI.";
+  const activeSide = gameMode === "pvp" ? (game.turn() === "w" ? "Ход белых." : "Ход чёрных.") : (game.turn() === playerColor ? "Ваш ход." : "Ход AI.");
   const checks = isCheck() ? "Шах: сначала защитите короля." : "";
   const openingText = opening ? `${opening.name}: ${opening.idea}` : "План: король в безопасности, фигуры активны, центр под контролем.";
   const experienceText = activeExperience === "combo" ? "Ищите форсировку: шах → взятие → угроза." : activeExperience === "coach" ? "Оцениваем качество решения." : "";
   const strategyText = STRATEGIES[activeStrategy] || "";
   const noviceText = noviceMode ? `${materialSummary()} Проверка: шахи, взятия, угрозы.` : "";
   const candidateText = bestCandidateText();
-  const parts = [openingText, activeSide, checks, experienceText, strategyText, noviceText, lastMoveAdvice, candidateText].filter(Boolean);
+  const core = [checks || activeSide, lastMoveAdvice || candidateText || strategyText].filter(Boolean);
+  const parts = coachDetail ? [openingText, activeSide, checks, experienceText, strategyText, noviceText, lastMoveAdvice, candidateText].filter(Boolean) : core;
 
   el.coachText.textContent = parts.join(" ");
+  el.coachTags.innerHTML = [opening?.name || "План", activeStrategy === "king" ? "Защита короля" : "Центр", activeExperience === "combo" ? "Тактика" : "Развитие"].map(tag => `<span>${tag}</span>`).join("");
+  el.coachMoreBtn.textContent = coachDetail ? "Кратко" : "Подробнее";
 }
 
 function renderTactic() {
@@ -980,7 +1078,9 @@ function startGame(options = {}) {
   document.body.classList.add("game-active");
   document.body.classList.toggle("pvp-active", gameMode === "pvp");
   document.body.classList.toggle("novice-active", isNoviceLevel());
+  playStart();
   toast(`Партия началась: ${LEVELS[difficulty].label}`);
+  if (activeExperience !== "free") speakCoach("Тренировка началась. Сначала безопасность короля, затем центр и активность фигур.");
   renderBoard();
 
   if (gameMode === "ai" && playerColor === "b") {
@@ -1028,7 +1128,8 @@ function copyPgn() {
 function initInteractions() {
   document.querySelectorAll("[data-color]").forEach(button => {
     button.addEventListener("click", () => {
-      playerColor = button.dataset.color;
+      playerColor = button.dataset.color === "random" ? (Math.random() > 0.5 ? "w" : "b") : button.dataset.color;
+      playToggle();
       document.querySelectorAll("[data-color]").forEach(item => item.classList.remove("active"));
       button.classList.add("active");
     });
@@ -1037,11 +1138,13 @@ function initInteractions() {
   document.querySelectorAll("[data-level]").forEach(button => {
     button.addEventListener("click", () => {
       difficulty = Number(button.dataset.level);
+      playToggle();
       document.querySelectorAll("[data-level]").forEach(item => item.classList.remove("active"));
       button.classList.add("active");
     });
   });
 
+  document.addEventListener("pointerdown", initAudio, { once: true });
   el.startBtn.addEventListener("click", () => startGame());
   el.demoBtn.addEventListener("click", () => startGame({ color: "w", level: 2 }));
   el.newGameBtn.addEventListener("click", returnToSetup);
@@ -1049,14 +1152,29 @@ function initInteractions() {
   document.querySelectorAll("[data-game-mode]").forEach(button => {
     button.addEventListener("click", () => {
       gameMode = button.dataset.gameMode;
+      playToggle();
       document.querySelectorAll("[data-game-mode]").forEach(item => item.classList.remove("active"));
       button.classList.add("active");
+      document.querySelectorAll("[data-experience-short]").forEach(item => item.classList.remove("active"));
       saveSettings();
       renderStats();
     });
   });
   el.autoFlipToggle.addEventListener("change", () => {
     autoFlip = el.autoFlipToggle.checked;
+    playToggle();
+    saveSettings();
+  });
+  el.soundToggle.addEventListener("change", () => {
+    soundEnabled = el.soundToggle.checked;
+    setSoundEnabled(soundEnabled);
+    playToggle();
+    saveSettings();
+  });
+  el.voiceToggle.addEventListener("change", () => {
+    voiceEnabled = el.voiceToggle.checked;
+    if (voiceEnabled && !("speechSynthesis" in window)) toast("Голос тренера не поддерживается браузером");
+    else if (voiceEnabled) speakCoach("Голос тренера включён.", true);
     saveSettings();
   });
   el.drawBtn.addEventListener("click", () => {
@@ -1076,6 +1194,24 @@ function initInteractions() {
   el.resultNewBtn.addEventListener("click", () => { closeResultModal(); returnToSetup(); });
   el.resultPgnBtn.addEventListener("click", copyPgn);
   el.resultCloseBtn.addEventListener("click", closeResultModal);
+  el.promotionModal?.querySelectorAll("[data-promotion]").forEach(button => {
+    button.addEventListener("click", () => {
+      const move = pendingPromotion?.find(item => item.promotion === button.dataset.promotion);
+      closePromotionPicker();
+      if (move) completePlayerMove(move);
+    });
+  });
+  el.mobileMenuBtn?.addEventListener("click", () => { activeSheetTab = "settings"; el.sidePanel?.classList.add("open"); renderSheet(); });
+  el.sheetCloseBtn?.addEventListener("click", () => el.sidePanel?.classList.remove("open"));
+  document.querySelectorAll("[data-sheet-tab]").forEach(button => button.addEventListener("click", () => {
+    activeSheetTab = button.dataset.sheetTab;
+    el.sidePanel?.classList.add("open");
+    renderSheet();
+  }));
+  el.hintBtn?.addEventListener("click", () => { hintsMode = true; coachDetail = true; activeSheetTab = "coach"; el.sidePanel?.classList.add("open"); updateCoach(); speakCoach(el.coachText.textContent, true); renderSheet(); });
+  el.coachIdeaBtn?.addEventListener("click", () => { coachDetail = true; updateCoach(); speakCoach(el.coachText.textContent); });
+  el.coachSpeakBtn?.addEventListener("click", () => speakCoach(el.coachText.textContent, true));
+  el.coachMoreBtn?.addEventListener("click", () => { coachDetail = !coachDetail; updateCoach(); });
   el.flipBtn.addEventListener("click", () => {
     boardOrientation = boardOrientation === "w" ? "b" : "w";
     renderBoard();
@@ -1093,13 +1229,16 @@ function initInteractions() {
   });
   el.pieceStyleBtn.addEventListener("click", () => {
     pieceStyle = pieceStyle === "bork" ? "classic" : "bork";
+    playToggle();
     document.body.classList.toggle("bork-pieces", pieceStyle === "bork");
     document.body.classList.toggle("classic-pieces", pieceStyle === "classic");
     el.pieceStyleBtn.textContent = pieceStyle === "bork" ? "Фигуры: BORK" : "Фигуры: классика";
+    saveSettings();
   });
   document.querySelectorAll("[data-experience]").forEach(button => {
     button.addEventListener("click", () => {
       activeExperience = button.dataset.experience;
+      playToggle();
       applyExperienceState();
       document.querySelectorAll("[data-experience]").forEach(item => item.classList.remove("active"));
       button.classList.add("active");
@@ -1114,6 +1253,21 @@ function initInteractions() {
         renderTactic();
       }
       updateCoach();
+      saveSettings();
+    });
+  });
+  document.querySelectorAll("[data-experience-short]").forEach(button => {
+    button.addEventListener("click", () => {
+      gameMode = "ai";
+      activeExperience = button.dataset.experienceShort;
+      hintsMode = true;
+      el.hintsModeToggle.checked = true;
+      document.querySelectorAll("[data-game-mode]").forEach(item => item.classList.toggle("active", item.dataset.gameMode === "ai"));
+      document.querySelectorAll("[data-experience-short]").forEach(item => item.classList.toggle("active", item === button));
+      document.querySelectorAll("[data-experience]").forEach(item => item.classList.toggle("active", item.dataset.experience === activeExperience));
+      applyExperienceState();
+      updateCoach();
+      saveSettings();
     });
   });
   document.querySelectorAll("[data-strategy]").forEach(button => {

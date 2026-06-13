@@ -1,10 +1,11 @@
-const CACHE_NAME = "bork-chess-v1";
+const CACHE_NAME = "bork-chess-v2";
 const ASSETS = [
   "./",
   "./index.html",
   "./style.css",
   "./app.js",
   "./engine.js",
+  "./audio.js",
   "./stockfish-worker.js",
   "./manifest.webmanifest",
   "./icons/icon.svg",

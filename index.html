@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="BORK Chess — онлайн шахматы против AI-бота в премиальном интерфейсе." />
   <meta name="theme-color" content="#1f1b19" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -24,7 +24,8 @@
           <div class="brand-mark">BORK CHESS</div>
         </div>
         <div class="header-actions">
-          <button class="tiny-btn" id="pieceStyleBtn">Фигуры: BORK</button>
+          <button class="tiny-btn mobile-menu-btn" id="mobileMenuBtn" type="button">Меню</button>
+          <button class="tiny-btn" id="pieceStyleBtn" type="button">Фигуры: BORK</button>
           <div class="status-pill" id="engineStatus">Загрузка движка</div>
         </div>
       </header>
@@ -33,6 +34,7 @@
         <aside class="command-panel">
           <div class="intro-copy">
             <h1>BORK CHESS</h1>
+            <p class="launch-line">Закрытая шахматная комната: Stockfish, тренер, PvP и тихий BORK-ритм.</p>
           </div>
 
           <div class="setup-panel" id="setupPanel">
@@ -59,6 +61,7 @@
               <div class="segmented">
                 <button class="segment active" data-game-mode="ai">Против AI</button>
                 <button class="segment" data-game-mode="pvp">Два игрока</button>
+                <button class="segment" data-experience-short="coach">Тренировка</button>
               </div>
             </div>
 
@@ -67,6 +70,7 @@
               <div class="segmented">
                 <button class="segment active" data-color="w">Белые</button>
                 <button class="segment" data-color="b">Чёрные</button>
+                <button class="segment" data-color="random">Случайно</button>
               </div>
             </div>
 
@@ -84,6 +88,14 @@
               </div>
 
               <div class="mode-switches">
+                <label class="switch-line">
+                  <input type="checkbox" id="soundToggle" checked />
+                  <span>Звук</span>
+                </label>
+                <label class="switch-line">
+                  <input type="checkbox" id="voiceToggle" />
+                  <span>Голос тренера</span>
+                </label>
                 <label class="switch-line">
                   <input type="checkbox" id="autoFlipToggle" checked />
                   <span>Автоповорот в PvP</span>
@@ -143,6 +155,14 @@
               <span class="tiny-badge" id="openingBadge">План</span>
             </div>
             <p id="coachText">Подсказки появятся здесь — прямо над доской.</p>
+            <div class="coach-actions">
+              <button class="tiny-btn" id="coachIdeaBtn" type="button">Показать идею</button>
+              <button class="tiny-btn" id="coachSpeakBtn" type="button">Озвучить</button>
+              <button class="tiny-btn" id="coachMoreBtn" type="button">Подробнее</button>
+            </div>
+            <div class="coach-tags" id="coachTags">
+              <span>Центр</span><span>Развитие</span><span>Защита короля</span>
+            </div>
           </section>
 
           <div class="board-stage">
@@ -164,17 +184,25 @@
             <button id="drawBtn">Ничья</button>
             <button id="resignBtn">Сдаться</button>
             <button id="flipBtn">Развернуть</button>
+            <button id="hintBtn">Подсказка</button>
           </div>
         </section>
 
-        <aside class="side-panel">
-          <div class="metric-grid">
+        <aside class="side-panel" id="sidePanel">
+          <div class="sheet-handle"><span>Партия</span><button class="tiny-btn" id="sheetCloseBtn" type="button">Свернуть</button></div>
+          <nav class="sheet-tabs" aria-label="Панель партии">
+            <button class="active" data-sheet-tab="moves" type="button">Ходы</button>
+            <button data-sheet-tab="coach" type="button">Тренер</button>
+            <button data-sheet-tab="settings" type="button">Настройки</button>
+            <button data-sheet-tab="stats" type="button">Статистика</button>
+          </nav>
+          <div class="metric-grid" data-sheet-panel="stats">
             <div class="metric"><span>Победы</span><strong id="wins">0</strong></div>
             <div class="metric"><span>Поражения</span><strong id="losses">0</strong></div>
             <div class="metric"><span>Ничьи</span><strong id="draws">0</strong></div>
           </div>
 
-          <section class="panel-block tactics-block" id="tacticsPanel">
+          <section class="panel-block tactics-block" id="tacticsPanel" data-sheet-panel="coach">
             <div class="panel-header">
               <h3>Библиотека тактик</h3>
               <button class="tiny-btn" id="nextTacticBtn">Далее</button>
@@ -184,7 +212,7 @@
             <div class="tactic-library" id="tacticLibrary"></div>
           </section>
 
-          <details class="panel-block" open>
+          <details class="panel-block" open data-sheet-panel="moves">
             <summary>Ходы партии</summary>
             <div class="panel-header compact-header">
               <span></span>
@@ -193,7 +221,7 @@
             <ol class="move-list" id="moveList"></ol>
           </details>
 
-          <details class="panel-block technical-block">
+          <details class="panel-block technical-block" data-sheet-panel="settings">
             <summary>FEN позиции</summary>
             <textarea id="fenBox" readonly spellcheck="false"></textarea>
           </details>
@@ -215,6 +243,18 @@
           <button class="primary-btn" id="resultNewBtn">Новая партия</button>
           <button class="ghost-btn" id="resultPgnBtn">Скопировать PGN</button>
           <button class="tiny-btn" id="resultCloseBtn">Закрыть</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="promotion-modal" id="promotionModal" aria-hidden="true">
+      <div class="promotion-card">
+        <span class="mini-label">Превращение пешки</span>
+        <div class="promotion-options">
+          <button data-promotion="q" type="button">♕<span>Ферзь</span></button>
+          <button data-promotion="r" type="button">♖<span>Ладья</span></button>
+          <button data-promotion="b" type="button">♗<span>Слон</span></button>
+          <button data-promotion="n" type="button">♘<span>Конь</span></button>
         </div>
       </div>
     </div>
