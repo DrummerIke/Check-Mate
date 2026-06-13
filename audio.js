@@ -1,5 +1,6 @@
 let audioContext = null;
 let enabled = true;
+let volume = 0.65;
 
 function context() {
   if (!enabled || typeof window === "undefined") return null;
@@ -25,7 +26,7 @@ function tone({ frequency = 420, duration = 0.08, gain = 0.045, type = "sine", s
   filter.type = "lowpass";
   filter.frequency.setValueAtTime(1050, start);
   amp.gain.setValueAtTime(0.0001, start);
-  amp.gain.exponentialRampToValueAtTime(gain, start + 0.012);
+  amp.gain.exponentialRampToValueAtTime(gain * volume, start + 0.012);
   amp.gain.exponentialRampToValueAtTime(0.0001, start + duration);
 
   osc.connect(filter);

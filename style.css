@@ -1,17 +1,25 @@
 /* 1. Design tokens */
 :root {
   color-scheme: dark;
-  --bg: #151211;
-  --surface: #1f1a17;
-  --surface-2: #29221e;
-  --line: rgba(242, 232, 220, 0.13);
-  --text: #f5eee6;
-  --muted: #a99b8d;
+  --bg: #100d0c;
+  --surface: #1b1715;
+  --surface-2: #241f1d;
+  --panel: rgba(36, 31, 29, 0.92);
+  --line: rgba(246, 240, 234, 0.12);
+  --line-strong: rgba(246, 240, 234, 0.22);
+  --text: #f6f0ea;
+  --muted: rgba(246, 240, 234, 0.62);
   --accent: #ef6f2e;
-  --danger: #ff6b45;
+  --accent-soft: rgba(239, 111, 46, 0.14);
+  --danger: #d65c4a;
+  --success: #8fd19e;
   --square-light: #d8c3a3;
   --square-dark: #6a4a38;
-  --board-size: min(94vw, calc(100dvh - 188px));
+  --topbar-h: 44px;
+  --status-h: 56px;
+  --actions-h: 58px;
+  --vertical-gaps: 28px;
+  --board-size: min(94vw, calc(100dvh - var(--topbar-h) - var(--status-h) - var(--actions-h) - var(--vertical-gaps)));
   --piece-white-main: #f2e8dc;
   --piece-white-light: #fff8ef;
   --piece-white-shadow: #cdbca8;
@@ -32,6 +40,8 @@ html, body { margin: 0; min-height: 100%; overflow: hidden; background: var(--bg
 body { min-height: 100dvh; -webkit-font-smoothing: antialiased; }
 button, textarea, input { font: inherit; }
 button { border: 0; cursor: pointer; color: inherit; }
+.app-bg, .decor, .glow, .texture, .app-shell::before, .app-shell::after, .square::before, .square::after { pointer-events: none; }
+button, .square, .menu, .modal, input, select, summary, textarea, .side-panel.open { pointer-events: auto; }
 .hidden, [hidden] { display: none !important; }
 
 /* 3. Layout shell */
@@ -47,23 +57,23 @@ button { border: 0; cursor: pointer; color: inherit; }
 
 /* 4. Launch screen */
 .command-panel { min-height: 0; display: grid; align-content: center; gap: 14px; padding: 8px 0; }
-.intro-copy h1 { margin: 0; text-align: center; font-size: clamp(32px, 12vw, 54px); letter-spacing: .12em; }
+.intro-copy h1 { margin: 0; text-align: center; font-size: clamp(22px, 7vw, 28px); letter-spacing: .02em; font-weight: 650; }
 .setup-panel { display: grid; gap: 12px; width: min(100%, 390px); margin: 0 auto; }
 .experience-panel .control-label { display: none; }
 .experience-grid { display: grid; gap: 8px; }
-.experience-card { min-height: 48px; padding: 0 16px; border-radius: 16px; background: rgba(255,255,255,.06); border: 1px solid var(--line); text-align: left; }
+.experience-card { min-height: 50px; padding: 0 16px; border-radius: 16px; background: rgba(255,255,255,.06); border: 1px solid var(--line); text-align: left; }
 .experience-card strong { font-size: 14px; }
 .experience-card span { display: none; }
 .experience-card.active, .segment.active, .difficulty.active { border-color: rgba(239,111,46,.55); background: rgba(239,111,46,.14); }
 .control-group { display: grid; gap: 7px; }
 .control-label { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
 .segmented { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-.segment, .difficulty, .menu-btn, .settings-link { min-height: 42px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.055); color: var(--text); }
+.segment, .difficulty, .menu-btn, .settings-link { min-height: 46px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.055); color: var(--text); }
 .difficulty-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 7px; }
 .difficulty span, .training-panel, #demoBtn { display: none; }
 .cta-row { display: grid; gap: 8px; }
 .primary-btn, .ghost-btn, .tiny-btn { min-height: 44px; border-radius: 16px; padding: 0 14px; background: rgba(255,255,255,.07); border: 1px solid var(--line); }
-.primary-btn { background: linear-gradient(135deg, var(--accent), #b94d20); color: #180f0b; font-weight: 800; }
+.primary-btn { min-height: 54px; background: linear-gradient(135deg, #f08a50, var(--accent)); color: #180f0b; font-weight: 800; }
 .settings-link { width: max-content; min-height: 34px; padding: 0 14px; margin: 0 auto; color: var(--muted); }
 
 /* 5. Game screen */
@@ -76,9 +86,12 @@ body.game-active .game-card { display: grid; grid-template-rows: 48px 1fr 50px; 
 .turn-indicator { flex: 0 0 auto; font-size: 12px; color: #ffe7d5; padding: 8px 10px; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid var(--line); }
 .quality-strip, .coach-strip { display: none; }
 .board-stage { min-height: 0; display: grid; place-items: center; position: relative; }
-.board-alert { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 8; padding: 10px 12px; border-radius: 16px; background: rgba(21,18,17,.86); border: 1px solid rgba(239,111,46,.28); color: var(--text); opacity: 0; transform: translateY(8px); transition: .18s ease; pointer-events: none; font-size: 13px; }
-.board-alert.show { opacity: 1; transform: translateY(0); }
+.board-alert, .coach-toast { position: absolute; left: 10px; right: 10px; bottom: 10px; z-index: 8; padding: 10px 12px; border-radius: 16px; background: rgba(21,18,17,.86); border: 1px solid rgba(239,111,46,.28); color: var(--text); opacity: 0; transform: translateY(8px); transition: .18s ease; pointer-events: none; font-size: 13px; }
+.board-alert.show, .coach-toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
 .board-alert.danger { border-color: rgba(255,90,58,.55); }
+.coach-toast { display: grid; gap: 9px; opacity: 0; transform: translateY(8px); transition: .18s ease; pointer-events: none; }
+.coach-toast p { margin: 0; }
+.coach-toast div { display: flex; gap: 8px; justify-content: flex-end; }
 
 /* 6. Board */
 .board-wrap { width: min(94vw, 100%); display: grid; place-items: center; }
@@ -127,8 +140,8 @@ body:not(.game-active) .action-bar #undoBtn { display: none; }
 .mobile-menu-btn, #pieceStyleBtn { display: none; }
 
 /* 9. Menu modal */
-.side-panel { position: fixed; inset: 0; z-index: 30; display: none; overflow-y: auto; padding: calc(var(--safe-top) + 14px) 14px calc(var(--safe-bottom) + 18px); background: rgba(21,18,17,.96); backdrop-filter: blur(22px); }
-.side-panel.open { display: block; }
+.side-panel { position: fixed; inset: 0; z-index: 30; display: none; pointer-events: none; overflow-y: auto; padding: calc(var(--safe-top) + 14px) 14px calc(var(--safe-bottom) + 18px); background: rgba(21,18,17,.96); backdrop-filter: blur(22px); }
+.side-panel.open { display: block; pointer-events: auto; }
 .sheet-handle { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; padding: 8px 0 14px; background: linear-gradient(var(--bg) 78%, transparent); font-weight: 800; letter-spacing: .12em; }
 .menu-section { display: grid; gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--line); }
 .menu-section h3 { margin: 0; font-size: 12px; color: var(--muted); letter-spacing: .14em; text-transform: uppercase; }

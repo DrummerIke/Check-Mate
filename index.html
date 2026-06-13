@@ -34,8 +34,8 @@
       <div class="hero-grid">
         <aside class="command-panel">
           <div class="intro-copy">
-            <h1>BORK CHESS</h1>
-            <p class="launch-line">Закрытая шахматная комната: Stockfish, тренер, PvP и тихий BORK-ритм.</p>
+            <h1>Новая партия</h1>
+            <p class="launch-line">Выберите формат партии</p>
           </div>
 
           <div class="setup-panel" id="setupPanel">
@@ -134,6 +134,13 @@
 
           <div class="board-stage">
             <div class="board-alert" id="boardAlert"></div>
+            <div class="coach-toast" id="coachToast" aria-hidden="true">
+              <p id="coachToastText"></p>
+              <div>
+                <button class="tiny-btn" id="coachToastCloseBtn" type="button">Понятно</button>
+                <button class="tiny-btn" id="coachToastSpeakBtn" type="button">Озвучить</button>
+              </div>
+            </div>
             <div class="board-wrap">
               <div class="coordinates file-coordinates top-files" id="topFiles"></div>
               <div class="board-line">
@@ -202,6 +209,15 @@
               <label class="switch-line"><input type="checkbox" id="hintsModeToggle" /><span>Подсказки</span></label>
               <label class="switch-line"><input type="checkbox" id="noviceModeToggle" /><span>Подробные объяснения</span></label>
               <button class="menu-btn" id="menuSpeakBtn" type="button">Озвучить совет</button>
+            </div>
+          </section>
+
+          <section class="menu-section">
+            <h3>Обучение</h3>
+            <div class="menu-actions">
+              <button class="menu-btn" id="menuComboBtn" type="button">Комбинации</button>
+              <button class="menu-btn" id="menuOpeningsBtn" type="button">Открытия</button>
+              <button class="menu-btn" id="menuCoachBtn" type="button">Тренер</button>
             </div>
           </section>
 
