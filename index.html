@@ -38,8 +38,8 @@
               <span class="control-label">Уровень сложности</span>
               <div class="difficulty-grid" id="difficultyGrid">
                 <button class="difficulty active" data-level="1">
-                  <strong>Разминка</strong>
-                  <span>бот часто ошибается</span>
+                  <strong>Новичок</strong>
+                  <span>мягкая игра и объяснения</span>
                 </button>
                 <button class="difficulty" data-level="2">
                   <strong>Классика</strong>
@@ -59,6 +59,11 @@
                 </button>
               </div>
             </div>
+
+            <label class="coach-toggle">
+              <input type="checkbox" id="noviceModeToggle" checked />
+              <span>Режим новичка: объяснять идеи, угрозы и планы</span>
+            </label>
 
             <div class="cta-row">
               <button class="primary-btn" id="startBtn">Начать партию</button>
@@ -115,6 +120,23 @@
               <button class="tiny-btn" id="copyPgnBtn">PGN</button>
             </div>
             <ol class="move-list" id="moveList"></ol>
+          </div>
+
+          <div class="panel-block coach-block">
+            <div class="panel-header">
+              <h3>Тренер по позиции</h3>
+              <span class="tiny-badge" id="openingBadge">Дебют</span>
+            </div>
+            <p id="coachText">Начните партию — я подскажу дебют, планы и тактические идеи.</p>
+          </div>
+
+          <div class="panel-block tactics-block">
+            <div class="panel-header">
+              <h3>Тактика</h3>
+              <button class="tiny-btn" id="nextTacticBtn">Следующая</button>
+            </div>
+            <strong id="tacticTitle">Связка</strong>
+            <p id="tacticText">Фигура не может уйти, потому что за ней стоит более ценная фигура или король.</p>
           </div>
 
           <div class="panel-block">

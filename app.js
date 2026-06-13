@@ -76,12 +76,34 @@ const POSITION_BONUS = {
 };
 
 const LEVELS = {
-  1: { label: "Разминка", depth: 0, randomness: 0.75, blunder: 0.35 },
-  2: { label: "Классика", depth: 1, randomness: 0.35, blunder: 0.15 },
-  3: { label: "Стратегия", depth: 2, randomness: 0.16, blunder: 0.05 },
-  4: { label: "Эксперт", depth: 2, randomness: 0.05, blunder: 0.00 },
-  5: { label: "BORK Mode", depth: 3, randomness: 0.02, blunder: 0.00 },
+  1: { label: "Новичок", depth: 1, randomness: 0.32, blunder: 0.18 },
+  2: { label: "Классика", depth: 2, randomness: 0.16, blunder: 0.06 },
+  3: { label: "Стратегия", depth: 2, randomness: 0.07, blunder: 0.01 },
+  4: { label: "Эксперт", depth: 3, randomness: 0.025, blunder: 0.00 },
+  5: { label: "BORK Mode", depth: 4, randomness: 0.00, blunder: 0.00 },
 };
+
+const OPENING_BOOK = [
+  { moves: ["e4", "c5", "Nf3", "d6", "d4", "cxd4", "Nxd4", "Nf6", "Nc3"], name: "Сицилианская защита", idea: "Чёрные сразу борются за центр с фланга. Белым важно развиваться, контролировать d4 и не спешить с необоснованной атакой." },
+  { moves: ["e4", "e5", "Nf3", "Nc6", "Bb5"], name: "Испанская партия", idea: "Белые давят на коня c6 и пешку e5. Главная тема — центр, рокировка и постепенное усиление фигур." },
+  { moves: ["e4", "e5", "Nf3", "Nc6", "Bc4"], name: "Итальянская партия", idea: "Белые целятся в слабое поле f7. Развивайте фигуры, рокируйте и готовьте d2-d4 или c2-c3." },
+  { moves: ["d4", "d5", "c4"], name: "Ферзевый гамбит", idea: "Белые предлагают пешку, чтобы захватить центр. Важны развитие лёгких фигур и давление по линии c." },
+  { moves: ["d4", "Nf6", "c4", "g6"], name: "Староиндийская защита", idea: "Чёрные отдают белым пространство, но готовят контрудар по центру и королевскому флангу." },
+  { moves: ["e4", "e6"], name: "Французская защита", idea: "Чёрные укрепляют d5 и принимают стеснённую, но прочную структуру. Следите за цепью пешек и слабым слоном c8." },
+  { moves: ["e4", "c6"], name: "Защита Каро-Канн", idea: "Чёрные готовят d5 без запирания слона c8. План — крепкая структура и аккуратная контригра." },
+  { moves: ["e4", "d5"], name: "Скандинавская защита", idea: "Чёрные немедленно атакуют e4. Белым обычно выгодно выиграть темп на ферзе и быстро развиваться." },
+];
+
+const TACTICS = [
+  { title: "Связка", text: "Фигура ограничена, потому что за ней король или более ценная фигура. Ищите линии слонов, ладей и ферзя." },
+  { title: "Вилка", text: "Одна фигура атакует две цели сразу. Чаще всего вилки делают кони, ферзь и пешки." },
+  { title: "Открытое нападение", text: "Фигура уходит и открывает линию другой фигуре. Особенно опасно, если появляется шах или атака ферзя." },
+  { title: "Двойной шах", text: "Король получает шах сразу от двух фигур. Обычно отвечать можно только ходом короля." },
+  { title: "Отвлечение", text: "Защитника вынуждают уйти с важной задачи: защиты мата, ферзя или ключевого поля." },
+  { title: "Завлечение", text: "Соперника заманивают на неудачное поле, где он попадает под удар или матовую сеть." },
+  { title: "Перегрузка", text: "Одна фигура защищает слишком много объектов. Удар по одному объекту рушит всю оборону." },
+  { title: "Матовая сеть", text: "Не просто шах, а ограничение всех путей короля. Проверяйте поля бегства перед жертвой." },
+];
 
 let ChessCtor = null;
 let game = null;
@@ -94,6 +116,8 @@ let botThinking = false;
 let lastMove = null;
 let gameStarted = false;
 let gameResultSaved = false;
+let noviceMode = true;
+let tacticIndex = 0;
 
 const el = {
   board: document.querySelector("#board"),
@@ -109,6 +133,12 @@ const el = {
   fenBox: document.querySelector("#fenBox"),
   toast: document.querySelector("#toast"),
   copyPgnBtn: document.querySelector("#copyPgnBtn"),
+  noviceModeToggle: document.querySelector("#noviceModeToggle"),
+  coachText: document.querySelector("#coachText"),
+  openingBadge: document.querySelector("#openingBadge"),
+  nextTacticBtn: document.querySelector("#nextTacticBtn"),
+  tacticTitle: document.querySelector("#tacticTitle"),
+  tacticText: document.querySelector("#tacticText"),
   wins: document.querySelector("#wins"),
   losses: document.querySelector("#losses"),
   draws: document.querySelector("#draws"),
@@ -303,6 +333,7 @@ function updateMeta() {
   el.turnIndicator.textContent = game.turn() === "w" ? "Ход белых" : "Ход чёрных";
   el.fenBox.value = game.fen();
   renderMoves();
+  updateCoach();
 
   el.undoBtn.disabled = !gameStarted || botThinking || game.history().length === 0;
 }
@@ -389,6 +420,59 @@ function handleSquareClick(square) {
   renderBoard();
 }
 
+function getOpeningMatch() {
+  const history = game.history();
+  let best = null;
+
+  for (const opening of OPENING_BOOK) {
+    const matches = history.length > 0
+      && history.length <= opening.moves.length
+      && history.every((move, index) => opening.moves[index] === move);
+    if (matches && (!best || history.length > best.matchedMoves)) {
+      best = { ...opening, matchedMoves: history.length };
+    }
+  }
+
+  return best;
+}
+
+function materialSummary() {
+  let score = 0;
+  for (const row of game.board()) {
+    for (const piece of row) {
+      if (!piece) continue;
+      score += piece.color === playerColor ? PIECE_VALUE[piece.type] : -PIECE_VALUE[piece.type];
+    }
+  }
+  if (Math.abs(score) < 80) return "Материал примерно равен.";
+  return score > 0 ? "У вас материальный перевес — упрощайте и не отдавайте короля." : "Материала меньше — ищите активность, шахи и тактические ресурсы.";
+}
+
+function updateCoach() {
+  if (!el.coachText || !game) return;
+
+  const opening = getOpeningMatch();
+  el.openingBadge.textContent = opening ? opening.name : "Позиция";
+
+  if (!gameStarted) {
+    el.coachText.textContent = "Начните партию — я подскажу дебют, планы и тактические идеи.";
+    return;
+  }
+
+  const activeSide = game.turn() === playerColor ? "ваш ход" : "ход соперника";
+  const checks = isCheck() ? " Сейчас шах: сначала уберите угрозу королю." : "";
+  const openingText = opening ? `Мы в дебюте: ${opening.name}. ${opening.idea}` : "Дебютная схема уже не очевидна: играйте по принципам — безопасность короля, активные фигуры, контроль центра.";
+  const noviceText = noviceMode ? ` ${materialSummary()} Перед ходом проверьте: есть ли шахи, взятия и угрозы у обеих сторон.` : "";
+
+  el.coachText.textContent = `${openingText} Сейчас ${activeSide}.${checks}${noviceText}`;
+}
+
+function renderTactic() {
+  const tactic = TACTICS[tacticIndex % TACTICS.length];
+  el.tacticTitle.textContent = tactic.title;
+  el.tacticText.textContent = tactic.text;
+}
+
 function evaluateBoard() {
   if (isCheckmate()) {
     return game.turn() === "w" ? -999999 : 999999;
@@ -413,7 +497,11 @@ function evaluateBoard() {
   }
 
   const mobility = game.moves().length;
-  score += game.turn() === "w" ? mobility : -mobility;
+  score += game.turn() === "w" ? mobility * 2 : -mobility * 2;
+
+  if (isCheck()) {
+    score += game.turn() === "w" ? -35 : 35;
+  }
 
   return score;
 }
@@ -468,12 +556,31 @@ function evaluateMove(move, botColor, depth) {
   return fromBotPerspective + noise;
 }
 
+function chooseBookMove() {
+  const history = game.history();
+
+  for (const opening of OPENING_BOOK) {
+    const canContinue = history.every((move, index) => opening.moves[index] === move);
+    const nextMove = opening.moves[history.length];
+    if (canContinue && nextMove) {
+      return nextMove;
+    }
+  }
+
+  return null;
+}
+
 function chooseBotMove() {
   const config = LEVELS[difficulty];
   const moves = game.moves({ verbose: true });
   const botColor = game.turn();
 
   if (!moves.length) return null;
+
+  const bookMove = difficulty >= 2 ? chooseBookMove() : null;
+  if (bookMove && moves.some(move => move.san === bookMove)) {
+    return bookMove;
+  }
 
   if (config.blunder && Math.random() < config.blunder) {
     return moves[Math.floor(Math.random() * moves.length)];
@@ -600,10 +707,20 @@ function initInteractions() {
     renderBoard();
   });
   el.copyPgnBtn.addEventListener("click", copyPgn);
+  el.noviceModeToggle.addEventListener("change", () => {
+    noviceMode = el.noviceModeToggle.checked;
+    updateCoach();
+    toast(noviceMode ? "Режим новичка включён" : "Режим новичка выключен");
+  });
+  el.nextTacticBtn.addEventListener("click", () => {
+    tacticIndex += 1;
+    renderTactic();
+  });
 }
 
 async function init() {
   renderStats();
+  renderTactic();
   initInteractions();
 
   try {
