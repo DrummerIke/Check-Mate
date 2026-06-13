@@ -14,7 +14,11 @@ function borkPieceSvg(type) {
     k: '<path d="M27 82h46v8H27z"/><path d="M35 73h30l6-34-14 8-7-20-7 20-14-8z"/><path d="M50 13v21M40 23h20"/>',
   };
 
-  return `<svg class="bork-piece-icon" viewBox="0 0 100 100" aria-hidden="true">${shapes[type] || shapes.p}</svg>`;
+  return `<svg class="bork-piece-icon" viewBox="0 0 100 100" aria-hidden="true">
+    <g class="piece-body">${shapes[type] || shapes.p}</g>
+    <path class="piece-glint" d="M34 88h32"/>
+    <path class="piece-cut" d="M38 76h24"/>
+  </svg>`;
 }
 
 function pieceMarkup(piece, symbol) {
@@ -478,12 +482,12 @@ function explainPlayerMove(move) {
 
   const loss = best.score - played.score;
   if (loss < 25) {
-    return `Сильный ход: ${move.san}. Причина: ${moveReason(move)}.`;
+    return `Сильно: ${move.san} — ${moveReason(move)}.`;
   }
   if (loss < 90) {
-    return `Нормальный ход: ${move.san}. Но сильнее выглядело ${best.move.san}: ${moveReason(best.move)}.`;
+    return `Играбельно: ${move.san}. Точнее ${best.move.san} — ${moveReason(best.move)}.`;
   }
-  return `Слабый ход: ${move.san}. Лучше было ${best.move.san}: ${moveReason(best.move)}.`;
+  return `Слабо: ${move.san}. Лучше ${best.move.san} — ${moveReason(best.move)}.`;
 }
 
 function getOpeningMatch() {
@@ -516,13 +520,13 @@ function materialSummary() {
 
 function moveReason(move) {
   if (!move) return "улучшает позицию";
-  if (move.san.includes("#")) return "создаёт матовую угрозу или завершает атаку";
-  if (move.san.includes("+")) return "даёт шах и заставляет соперника реагировать";
-  if (move.captured) return `выигрывает или разменивает фигуру на ${move.to}`;
-  if (["n", "b"].includes(move.piece) && ["1", "8"].includes(move.from[1])) return "развивает фигуру с начальной позиции";
-  if (["e4", "d4", "e5", "d5", "c4", "c5"].includes(move.to)) return "борется за центр";
-  if (move.san === "O-O" || move.san === "O-O-O") return "уводит короля в безопасность";
-  return "улучшает активность фигур и не создаёт явной слабости";
+  if (move.san.includes("#")) return "матовая атака";
+  if (move.san.includes("+")) return "шах с темпом";
+  if (move.captured) return `выигрыш/размен на ${move.to}`;
+  if (["n", "b"].includes(move.piece) && ["1", "8"].includes(move.from[1])) return "развитие фигуры";
+  if (["e4", "d4", "e5", "d5", "c4", "c5"].includes(move.to)) return "контроль центра";
+  if (move.san === "O-O" || move.san === "O-O-O") return "безопасность короля";
+  return "активность без явной слабости";
 }
 
 function bestCandidateText() {
@@ -531,37 +535,36 @@ function bestCandidateText() {
   const best = scoreMovesFor(playerColor, 1)[0];
   if (!best) return "";
 
-  return `Кандидат на ход: ${best.move.san} — ${moveReason(best.move)}.`;
+  return `Кандидат: ${best.move.san} — ${moveReason(best.move)}.`;
 }
 
 function updateCoach() {
   if (!el.coachText || !game) return;
 
   const opening = getOpeningMatch();
-  el.openingBadge.textContent = opening ? opening.name : "Позиция";
+  el.openingBadge.textContent = opening ? opening.name : "План";
   el.coachPanel.classList.toggle("is-muted", !hintsMode);
 
   if (!hintsMode) {
-    el.coachText.textContent = "Подсказки выключены. Включите тренера слева, когда захотите разобрать идеи позиции.";
+    el.coachText.textContent = "Подсказки выключены — партия остаётся чистой.";
     return;
   }
 
   if (!gameStarted) {
-    el.coachText.textContent = "Начните партию — тренер будет объяснять дебют, планы и качество ваших ходов.";
+    el.coachText.textContent = "Стартуйте партию — тренер даст только короткие решения по позиции.";
     return;
   }
 
-  const activeSide = game.turn() === playerColor ? "ваш ход" : "ход соперника";
-  const checks = isCheck() ? " Сейчас шах: сначала уберите угрозу королю." : "";
-  const openingText = opening ? `Дебют: ${opening.name}. ${opening.idea}` : "Дебютная схема уже не очевидна: играйте по принципам — безопасность короля, активные фигуры, контроль центра.";
-  const experienceText = activeExperience === "combo" ? " Режим комбинаций: ищите форсированные ходы — шахи, взятия и угрозы." : activeExperience === "coach" ? " Режим тренера: цель — понять качество каждого решения." : "";
-  const strategyText = STRATEGIES[activeStrategy] ? ` Фокус тренировки: ${STRATEGIES[activeStrategy]}` : "";
-  const noviceText = noviceMode ? ` ${materialSummary()} Перед ходом проверьте шахи, взятия и угрозы за обе стороны.` : "";
+  const activeSide = game.turn() === playerColor ? "Ваш ход." : "Ход AI.";
+  const checks = isCheck() ? "Шах: сначала защитите короля." : "";
+  const openingText = opening ? `${opening.name}: ${opening.idea}` : "План: король в безопасности, фигуры активны, центр под контролем.";
+  const experienceText = activeExperience === "combo" ? "Ищите форсировку: шах → взятие → угроза." : activeExperience === "coach" ? "Оцениваем качество решения." : "";
+  const strategyText = STRATEGIES[activeStrategy] || "";
+  const noviceText = noviceMode ? `${materialSummary()} Проверка: шахи, взятия, угрозы.` : "";
   const candidateText = bestCandidateText();
-  const moveText = lastMoveAdvice ? ` ${lastMoveAdvice}` : "";
-  const candidate = candidateText ? ` ${candidateText}` : "";
+  const parts = [openingText, activeSide, checks, experienceText, strategyText, noviceText, lastMoveAdvice, candidateText].filter(Boolean);
 
-  el.coachText.textContent = `${openingText} Сейчас ${activeSide}.${checks}${experienceText}${strategyText}${noviceText}${moveText}${candidate}`;
+  el.coachText.textContent = parts.join(" ");
 }
 
 function renderTactic() {

@@ -576,3 +576,52 @@ body.game-active .hero-card {
 .chess-board {
   position: relative;
 }
+
+/* BORK-inspired product feel: precise geometry, restrained graphite, warm accent cuts. */
+.bork-piece-icon .piece-body {
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+.bork-piece-icon .piece-glint {
+  fill: none;
+  stroke: rgba(255, 106, 33, 0.82);
+  stroke-width: 3;
+}
+
+.bork-piece-icon .piece-cut {
+  fill: none;
+  stroke: rgba(255,255,255,0.28);
+  stroke-width: 2.2;
+}
+
+.bork-pieces .piece.black-piece .piece-cut {
+  stroke: rgba(255,255,255,0.16);
+}
+
+.bork-pieces .piece.white-piece .piece-cut {
+  stroke: rgba(31, 22, 17, 0.25);
+}
+
+.bork-pieces .piece.white-piece .piece-glint,
+.bork-pieces .piece.black-piece .piece-glint {
+  stroke: var(--accent);
+}
+
+.square.light {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.18), transparent 45%),
+    #d5bea0;
+}
+
+.square.dark {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.06), transparent 44%),
+    #6e503c;
+}
+
+.hero-card {
+  background:
+    radial-gradient(circle at 76% 18%, rgba(255, 106, 33, 0.10), transparent 25%),
+    linear-gradient(145deg, rgba(34, 29, 26, 0.96), rgba(13, 11, 10, 0.98));
+}
