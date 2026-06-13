@@ -25,7 +25,7 @@
           <div class="brand-mark">BORK CHESS</div>
         </div>
         <div class="header-actions">
-          <button class="tiny-btn mobile-menu-btn" id="mobileMenuBtn" type="button">Меню</button>
+          <button class="tiny-btn mobile-menu-btn top-menu-button" id="mobileMenuBtn" type="button">Меню</button>
           <button class="tiny-btn" id="pieceStyleBtn" type="button">BORK SVG</button>
           <div class="status-pill" id="engineStatus">Загрузка движка</div>
         </div>
@@ -139,6 +139,7 @@
               <div>
                 <button class="tiny-btn" id="coachToastCloseBtn" type="button">Понятно</button>
                 <button class="tiny-btn" id="coachToastSpeakBtn" type="button">Озвучить</button>
+                <button class="tiny-btn" id="coachToastNextBtn" type="button" hidden>Следующая</button>
               </div>
             </div>
             <div class="board-wrap">
@@ -152,11 +153,17 @@
             </div>
           </div>
 
+          <div class="move-strip">
+            <button id="prevMoveBtn" type="button" disabled>‹</button>
+            <div id="lastMoveLine">Ходы появятся здесь</div>
+            <button id="nextMoveBtn" type="button" disabled>›</button>
+          </div>
+
           <div class="action-bar">
             <button id="newGameBtn">Новая</button>
             <button id="undoBtn">Отмена</button>
             <button id="hintBtn">Совет</button>
-            <button id="mobileMenuActionBtn" type="button">Меню</button>
+            <button id="mobileMenuActionBtn" class="bottom-menu-button" type="button">Меню</button>
             <button id="drawBtn">Ничья</button>
             <button id="resignBtn">Сдаться</button>
             <button id="flipBtn">Развернуть</button>
@@ -218,6 +225,7 @@
               <button class="menu-btn" id="menuComboBtn" type="button">Комбинации</button>
               <button class="menu-btn" id="menuOpeningsBtn" type="button">Открытия</button>
               <button class="menu-btn" id="menuCoachBtn" type="button">Тренер</button>
+              <button class="menu-btn" id="menuNextPuzzleBtn" type="button">Следующая задача</button>
             </div>
           </section>
 

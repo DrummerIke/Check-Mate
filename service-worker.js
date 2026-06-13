@@ -1,4 +1,4 @@
-const CACHE_NAME = "bork-chess-v5";
+const CACHE_NAME = "bork-chess-v6";
 const ASSETS = [
   "./",
   "./index.html",
@@ -8,6 +8,7 @@ const ASSETS = [
   "./engine.js",
   "./audio.js",
   "./pieces.js",
+  "./puzzles.js",
   "./stockfish-worker.js",
   "./manifest.webmanifest",
   "./icons/favicon.svg",

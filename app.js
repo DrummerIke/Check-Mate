@@ -11,6 +11,7 @@ import {
   setSoundEnabled,
 } from "./audio.js";
 import { renderPiece } from "./pieces.js";
+import { PUZZLES } from "./puzzles.js";
 
 function pieceMarkup(piece) {
   if (!piece) return "";
@@ -109,14 +110,6 @@ const OPENING_BOOK = [
   { moves: ["e4", "d5"], name: "Скандинавская защита", idea: "Чёрные немедленно атакуют e4. Белым обычно выгодно выиграть темп на ферзе и быстро развиваться." },
 ];
 
-const PUZZLES = [
-  { fen: "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", bestMove: { from: "f3", to: "e5" }, theme: "Центр", title: "Конь забирает центр", explanation: "Конь берёт пешку e5 и заставляет чёрных решать проблему центра." },
-  { fen: "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2", bestMove: { from: "g1", to: "f3" }, theme: "Развитие", title: "Развить коня", explanation: "Конь атакует e5 и готовит рокировку без ослаблений." },
-  { fen: "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 4", bestMove: { from: "e1", to: "g1" }, theme: "Безопасность", title: "Спрятать короля", explanation: "Рокировка убирает короля из центра и подключает ладью." },
-  { fen: "rnbqkbnr/ppp2ppp/8/3pp3/3PP3/8/PPP2PPP/RNBQKBNR w KQkq d6 0 3", bestMove: { from: "d4", to: "e5" }, theme: "Пространство", title: "Продвинуть центр", explanation: "Пешка e5 отнимает важные поля и теснит фигуры соперника." },
-  { fen: "rnbqkbnr/ppp1pppp/8/3p4/2P5/8/PP1PPPPP/RNBQKBNR w KQkq d6 0 2", bestMove: { from: "c4", to: "d5" }, theme: "Гамбит", title: "Забрать центр", explanation: "Взятие d5 открывает линии и проверяет готовность чёрных к защите центра." },
-];
-
 const TACTICS = [
   { title: "Связка", text: "Фигура ограничена, потому что за ней король или более ценная фигура. Ищите линии слонов, ладей и ферзя." },
   { title: "Вилка", text: "Одна фигура атакует две цели сразу. Чаще всего вилки делают кони, ферзь и пешки." },
@@ -138,6 +131,14 @@ const STRATEGIES = {
 let ChessCtor = null;
 let puzzleIndex = 0;
 let currentPuzzle = null;
+
+function updateAppHeight() {
+  document.documentElement.style.setProperty("--app-height", `${window.innerHeight}px`);
+}
+
+window.addEventListener("resize", updateAppHeight);
+window.addEventListener("orientationchange", updateAppHeight);
+updateAppHeight();
 let game = null;
 let selectedSquare = null;
 let legalTargets = [];
@@ -216,6 +217,7 @@ const el = {
   coachToastText: document.querySelector("#coachToastText"),
   coachToastCloseBtn: document.querySelector("#coachToastCloseBtn"),
   coachToastSpeakBtn: document.querySelector("#coachToastSpeakBtn"),
+  coachToastNextBtn: document.querySelector("#coachToastNextBtn"),
   resultModal: document.querySelector("#resultModal"),
   resultTitle: document.querySelector("#resultTitle"),
   resultSummary: document.querySelector("#resultSummary"),
@@ -237,6 +239,10 @@ const el = {
   menuComboBtn: document.querySelector("#menuComboBtn"),
   menuOpeningsBtn: document.querySelector("#menuOpeningsBtn"),
   menuCoachBtn: document.querySelector("#menuCoachBtn"),
+  menuNextPuzzleBtn: document.querySelector("#menuNextPuzzleBtn"),
+  lastMoveLine: document.querySelector("#lastMoveLine"),
+  prevMoveBtn: document.querySelector("#prevMoveBtn"),
+  nextMoveBtn: document.querySelector("#nextMoveBtn"),
   sidePanel: document.querySelector("#sidePanel"),
   sheetCloseBtn: document.querySelector("#sheetCloseBtn"),
   experienceGrid: document.querySelector("#experienceGrid"),
@@ -339,6 +345,8 @@ function showCoachToast(message) {
   if (!el.coachToast || !el.coachToastText || !message) return;
   window.clearTimeout(boardAlertTimer);
   el.coachToastText.textContent = message.replace(/\s+/g, " ").slice(0, 180);
+  if (el.coachToastSpeakBtn) el.coachToastSpeakBtn.disabled = !voiceEnabled;
+  if (el.coachToastNextBtn) el.coachToastNextBtn.hidden = activeExperience !== "combo";
   el.coachToast.classList.add("show");
   el.coachToast.setAttribute("aria-hidden", "false");
   boardAlertTimer = window.setTimeout(hideCoachToast, 6500);
@@ -519,6 +527,13 @@ function renderBoard() {
 
 function renderMoves() {
   const verboseHistory = game.history({ verbose: true });
+  if (el.lastMoveLine) {
+    const moveNo = Math.max(1, Math.ceil(verboseHistory.length / 2));
+    const white = verboseHistory.length % 2 === 0 ? verboseHistory.at(-2)?.san : verboseHistory.at(-1)?.san;
+    const black = verboseHistory.length % 2 === 0 ? verboseHistory.at(-1)?.san : "";
+    el.lastMoveLine.textContent = verboseHistory.length ? `${moveNo}. ${white || "…"}${black ? "  " + black : ""}` : "Ходы появятся здесь";
+  }
+  if (!el.moveList) return;
   el.moveList.innerHTML = "";
   for (let i = 0; i < verboseHistory.length; i += 2) {
     const white = verboseHistory[i]?.san || "";
@@ -737,7 +752,8 @@ function completePlayerMove(move) {
   const result = makeMove(move, "player");
   if (result && activeExperience === "combo") {
     const solved = currentPuzzle && result.from === currentPuzzle.bestMove.from && result.to === currentPuzzle.bestMove.to;
-    showCoachToast(solved ? `Верно. ${currentPuzzle.theme}: ${currentPuzzle.explanation}` : `Почти. Тема: ${currentPuzzle?.theme || "тактика"}. Попробуйте найти сильнейший ход.`);
+    if (!solved && typeof game.undo === "function") { game.undo(); lastMove = null; renderBoard(); }
+    showCoachToast(solved ? `Верно. ${currentPuzzle.theme}: ${currentPuzzle.explanation}` : `Почти. Тема: ${currentPuzzle?.theme || "тактика"}. Попробуйте ещё раз.`);
     return;
   }
   if (result && !isGameOver()) {
@@ -1080,6 +1096,13 @@ function returnToSetup() {
   toast("Выберите настройки новой партии");
 }
 
+
+function startNextPuzzle() {
+  puzzleIndex += 1;
+  activeExperience = "combo";
+  startGame({ color: playerColor, level: difficulty });
+}
+
 function startGame(options = {}) {
   playerColor = options.color || playerColor;
   difficulty = Number(options.level || difficulty);
@@ -1246,6 +1269,7 @@ function initInteractions() {
   el.openSettingsLink?.addEventListener("click", openMenu);
   el.sheetCloseBtn?.addEventListener("click", closeMenu);
   el.sidePanel?.addEventListener("click", (event) => { if (event.target === el.sidePanel) closeMenu(); });
+  window.addEventListener("keydown", (event) => { if (event.key === "Escape") closeMenu(); });
   document.querySelectorAll("[data-sheet-tab]").forEach(button => button.addEventListener("click", () => {
     activeSheetTab = button.dataset.sheetTab;
     el.sidePanel?.classList.add("open");
@@ -1254,6 +1278,7 @@ function initInteractions() {
   el.hintBtn?.addEventListener("click", () => { hintsMode = true; coachDetail = false; updateCoach(); showCoachToast(currentPuzzle ? `${currentPuzzle.theme}: ${currentPuzzle.explanation}` : (el.coachText.textContent || "Проверьте шахи, взятия и угрозы. Сейчас важен контроль центра.")); renderSheet(); });
   el.coachToastCloseBtn?.addEventListener("click", hideCoachToast);
   el.coachToastSpeakBtn?.addEventListener("click", () => speakCoach(el.coachToastText?.textContent, true));
+  el.coachToastNextBtn?.addEventListener("click", startNextPuzzle);
   el.coachIdeaBtn?.addEventListener("click", () => { coachDetail = true; updateCoach(); speakCoach(el.coachText.textContent); });
   el.coachSpeakBtn?.addEventListener("click", () => speakCoach(el.coachText.textContent, true));
   el.coachMoreBtn?.addEventListener("click", () => { coachDetail = !coachDetail; updateCoach(); });
@@ -1268,6 +1293,7 @@ function initInteractions() {
   el.menuFlipBtn?.addEventListener("click", () => { closeMenu(); el.flipBtn?.click(); });
   el.menuSpeakBtn?.addEventListener("click", () => { updateCoach(); speakCoach(el.coachText.textContent, true); });
   el.menuComboBtn?.addEventListener("click", () => { activeExperience = "combo"; closeMenu(); startGame({ color: playerColor, level: difficulty }); });
+  el.menuNextPuzzleBtn?.addEventListener("click", () => { closeMenu(); startNextPuzzle(); });
   el.menuOpeningsBtn?.addEventListener("click", () => { closeMenu(); showCoachToast("Открытие: захватите центр, развейте лёгкие фигуры и подготовьте рокировку."); });
   el.menuCoachBtn?.addEventListener("click", () => { activeExperience = "coach"; closeMenu(); showCoachToast("Тренер включён: нажимайте Совет, чтобы получать короткий план позиции."); });
   el.hintsModeToggle.addEventListener("change", () => {
