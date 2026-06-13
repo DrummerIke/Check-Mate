@@ -162,8 +162,8 @@ textarea { width: 100%; min-height: 70px; resize: vertical; color: var(--text); 
 .tactic-library, .coach-tags, .sheet-tabs { display: none; }
 
 /* 11. Result / promotion modal */
-.result-modal, .promotion-modal { position: fixed; inset: 0; z-index: 40; display: none; place-items: center; padding: 18px; background: rgba(0,0,0,.64); }
-.result-modal.show, .promotion-modal.show { display: grid; }
+.result-modal, .promotion-modal { position: fixed; inset: 0; z-index: 40; display: none; visibility: hidden; pointer-events: none; place-items: center; padding: 18px; background: rgba(0,0,0,.64); }
+.result-modal.show, .promotion-modal.show { display: grid; visibility: visible; pointer-events: auto; }
 .result-card, .promotion-card { width: min(100%, 390px); border-radius: 24px; border: 1px solid var(--line); background: #211b18; padding: 20px; box-shadow: 0 26px 80px rgba(0,0,0,.45); }
 .result-card h2 { margin: 8px 0; }
 .result-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
@@ -192,6 +192,8 @@ textarea { width: 100%; min-height: 70px; resize: vertical; color: var(--text); 
 
 /* 14. Responsive: tablet */
 @media (min-width: 760px) {
+  body.screen-launch .hero-grid { grid-template-columns: minmax(420px, 620px); justify-content: center; align-content: center; }
+  body.screen-launch .command-panel { width: min(620px, 100%); padding: 28px; border: 1px solid var(--line); border-radius: 28px; background: var(--panel); box-shadow: 0 24px 70px rgba(0,0,0,.28); }
   .chess-board { width: min(76vh, 62vw, 620px); height: min(76vh, 62vw, 620px); }
   html, body { overflow: auto; }
   .app-shell { min-height: 100dvh; height: auto; padding: 18px; }
@@ -209,6 +211,7 @@ textarea { width: 100%; min-height: 70px; resize: vertical; color: var(--text); 
 
 /* 15. Responsive: desktop */
 @media (min-width: 1120px) {
+  body.screen-launch .hero-grid { grid-template-columns: minmax(520px, 680px); }
   .chess-board { width: min(72vh, 620px); height: min(72vh, 620px); }
   .hero-grid { grid-template-columns: 320px minmax(560px, 1fr) 320px; }
   body.game-active .hero-grid { grid-template-columns: minmax(560px, 1fr) 320px; }

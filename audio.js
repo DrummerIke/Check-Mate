@@ -1,6 +1,6 @@
 let audioContext = null;
 let enabled = true;
-let volume = 0.65;
+let volume = 0.55;
 
 function context() {
   if (!enabled || typeof window === "undefined") return null;

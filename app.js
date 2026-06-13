@@ -601,11 +601,13 @@ function showResultModal(title, summary) {
   el.resultLevel.textContent = gameMode === "pvp" ? "Два игрока" : LEVELS[difficulty].label;
   el.resultColor.textContent = playerColor === "w" ? "Белые" : "Чёрные";
   el.resultModal.classList.add("show");
+  document.body.classList.add("result-open");
   el.resultModal.setAttribute("aria-hidden", "false");
 }
 
 function closeResultModal() {
   el.resultModal?.classList.remove("show");
+  document.body.classList.remove("result-open");
   el.resultModal?.setAttribute("aria-hidden", "true");
 }
 
@@ -717,12 +719,14 @@ function showPromotionPicker(moves) {
   pendingPromotion = moves;
   renderPromotionPieces();
   el.promotionModal?.classList.add("show");
+  document.body.classList.add("promotion-open");
   el.promotionModal?.setAttribute("aria-hidden", "false");
 }
 
 function closePromotionPicker() {
   pendingPromotion = null;
   el.promotionModal?.classList.remove("show");
+  document.body.classList.remove("promotion-open");
   el.promotionModal?.setAttribute("aria-hidden", "true");
 }
 
@@ -867,6 +871,7 @@ function updateCoach() {
 }
 
 function renderTactic() {
+  if (!el.tacticTitle || !el.tacticText) return;
   const tactic = TACTICS[tacticIndex % TACTICS.length];
   el.tacticTitle.textContent = tactic.title;
   el.tacticText.textContent = tactic.text;
@@ -1069,7 +1074,8 @@ function returnToSetup() {
   lastMove = null;
   lastMoveBy = null;
   lastMoveAdvice = "";
-  document.body.classList.remove("game-active", "novice-active", "pvp-active");
+  document.body.classList.remove("game-active", "screen-game", "novice-active", "pvp-active");
+  document.body.classList.add("screen-launch");
   if (game) renderBoard();
   toast("Выберите настройки новой партии");
 }
@@ -1106,7 +1112,8 @@ function startGame(options = {}) {
   el.hintsModeToggle.checked = hintsMode;
   el.noviceModeToggle.checked = noviceMode;
   saveSettings();
-  document.body.classList.add("game-active");
+  document.body.classList.remove("screen-launch");
+  document.body.classList.add("game-active", "screen-game");
   document.body.classList.toggle("pvp-active", gameMode === "pvp");
   document.body.classList.toggle("novice-active", isNoviceLevel());
   playStart();
@@ -1232,8 +1239,8 @@ function initInteractions() {
       if (move) completePlayerMove(move);
     });
   });
-  const openMenu = () => { activeSheetTab = "settings"; el.sidePanel?.classList.add("open"); el.sidePanel?.setAttribute("aria-hidden", "false"); renderSheet(); };
-  const closeMenu = () => { el.sidePanel?.classList.remove("open"); el.sidePanel?.setAttribute("aria-hidden", "true"); };
+  const openMenu = () => { activeSheetTab = "settings"; el.sidePanel?.classList.add("open"); document.body.classList.add("menu-open"); el.sidePanel?.setAttribute("aria-hidden", "false"); renderSheet(); };
+  const closeMenu = () => { el.sidePanel?.classList.remove("open"); document.body.classList.remove("menu-open"); el.sidePanel?.setAttribute("aria-hidden", "true"); };
   el.mobileMenuBtn?.addEventListener("click", openMenu);
   el.mobileMenuActionBtn?.addEventListener("click", openMenu);
   el.openSettingsLink?.addEventListener("click", openMenu);
@@ -1322,11 +1329,11 @@ function initInteractions() {
       activeStrategy = button.dataset.strategy;
       document.querySelectorAll("[data-strategy]").forEach(item => item.classList.remove("active"));
       button.classList.add("active");
-      el.strategyText.textContent = STRATEGIES[activeStrategy];
+      if (el.strategyText) el.strategyText.textContent = STRATEGIES[activeStrategy];
       updateCoach();
     });
   });
-  el.nextTacticBtn.addEventListener("click", () => {
+  el.nextTacticBtn?.addEventListener("click", () => {
     tacticIndex += 1;
     renderTactic();
   });
@@ -1340,7 +1347,7 @@ async function init() {
   renderTacticLibrary();
   renderTactic();
   renderPromotionPieces();
-  el.strategyText.textContent = STRATEGIES[activeStrategy];
+  if (el.strategyText) el.strategyText.textContent = STRATEGIES[activeStrategy];
   initInteractions();
 
   try {
