@@ -213,6 +213,13 @@ const el = {
   resultCloseBtn: document.querySelector("#resultCloseBtn"),
   promotionModal: document.querySelector("#promotionModal"),
   mobileMenuBtn: document.querySelector("#mobileMenuBtn"),
+  mobileMenuActionBtn: document.querySelector("#mobileMenuActionBtn"),
+  openSettingsLink: document.querySelector("#openSettingsLink"),
+  menuNewGameBtn: document.querySelector("#menuNewGameBtn"),
+  menuResignBtn: document.querySelector("#menuResignBtn"),
+  menuFlipBtn: document.querySelector("#menuFlipBtn"),
+  menuCopyPgnBtn: document.querySelector("#menuCopyPgnBtn"),
+  menuSpeakBtn: document.querySelector("#menuSpeakBtn"),
   sidePanel: document.querySelector("#sidePanel"),
   sheetCloseBtn: document.querySelector("#sheetCloseBtn"),
   experienceGrid: document.querySelector("#experienceGrid"),
@@ -547,7 +554,7 @@ function announcePositionState() {
   if (isCheckmate()) {
     showBoardAlert("МАТ", "danger");
     playGameOver();
-    speakCoach("Мат. Партия завершена.", true);
+    speakCoach("Мат. Партия завершена.");
   } else if (isCheck()) {
     showBoardAlert("ШАХ", "accent");
     playCheck();
@@ -577,7 +584,7 @@ function renderSheet() {
 }
 
 function speakCoach(text = el.coachText?.textContent || "", force = false) {
-  if ((!voiceEnabled && !force) || !text || !("speechSynthesis" in window)) return;
+  if (!voiceEnabled || !force || !text || !("speechSynthesis" in window)) return;
   const clean = text.replace(/\s+/g, " ").slice(0, 180);
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(clean);
@@ -1158,7 +1165,7 @@ function initInteractions() {
   el.voiceToggle.addEventListener("change", () => {
     voiceEnabled = el.voiceToggle.checked;
     if (voiceEnabled && !("speechSynthesis" in window)) toast("Голос тренера не поддерживается браузером");
-    else if (voiceEnabled) speakCoach("Голос тренера включён.", true);
+    else if (voiceEnabled) toast("Голос тренера включён: используйте кнопку Озвучить совет.");
     saveSettings();
   });
   el.drawBtn.addEventListener("click", () => {
@@ -1185,14 +1192,18 @@ function initInteractions() {
       if (move) completePlayerMove(move);
     });
   });
-  el.mobileMenuBtn?.addEventListener("click", () => { activeSheetTab = "settings"; el.sidePanel?.classList.add("open"); renderSheet(); });
-  el.sheetCloseBtn?.addEventListener("click", () => el.sidePanel?.classList.remove("open"));
+  const openMenu = () => { activeSheetTab = "settings"; el.sidePanel?.classList.add("open"); el.sidePanel?.setAttribute("aria-hidden", "false"); renderSheet(); };
+  const closeMenu = () => { el.sidePanel?.classList.remove("open"); el.sidePanel?.setAttribute("aria-hidden", "true"); };
+  el.mobileMenuBtn?.addEventListener("click", openMenu);
+  el.mobileMenuActionBtn?.addEventListener("click", openMenu);
+  el.openSettingsLink?.addEventListener("click", openMenu);
+  el.sheetCloseBtn?.addEventListener("click", closeMenu);
   document.querySelectorAll("[data-sheet-tab]").forEach(button => button.addEventListener("click", () => {
     activeSheetTab = button.dataset.sheetTab;
     el.sidePanel?.classList.add("open");
     renderSheet();
   }));
-  el.hintBtn?.addEventListener("click", () => { hintsMode = true; coachDetail = true; activeSheetTab = "coach"; el.sidePanel?.classList.add("open"); updateCoach(); speakCoach(el.coachText.textContent, true); renderSheet(); });
+  el.hintBtn?.addEventListener("click", () => { hintsMode = true; coachDetail = false; updateCoach(); showBoardAlert(el.coachText.textContent || "Проверьте шахи, взятия и угрозы. Сейчас важен контроль центра.", "info"); renderSheet(); });
   el.coachIdeaBtn?.addEventListener("click", () => { coachDetail = true; updateCoach(); speakCoach(el.coachText.textContent); });
   el.coachSpeakBtn?.addEventListener("click", () => speakCoach(el.coachText.textContent, true));
   el.coachMoreBtn?.addEventListener("click", () => { coachDetail = !coachDetail; updateCoach(); });
@@ -1200,7 +1211,12 @@ function initInteractions() {
     boardOrientation = boardOrientation === "w" ? "b" : "w";
     renderBoard();
   });
-  el.copyPgnBtn.addEventListener("click", copyPgn);
+  el.copyPgnBtn?.addEventListener("click", copyPgn);
+  el.menuCopyPgnBtn?.addEventListener("click", copyPgn);
+  el.menuNewGameBtn?.addEventListener("click", () => { closeMenu(); returnToSetup(); });
+  el.menuResignBtn?.addEventListener("click", () => { closeMenu(); el.resignBtn?.click(); });
+  el.menuFlipBtn?.addEventListener("click", () => { closeMenu(); el.flipBtn?.click(); });
+  el.menuSpeakBtn?.addEventListener("click", () => { updateCoach(); speakCoach(el.coachText.textContent, true); });
   el.hintsModeToggle.addEventListener("change", () => {
     hintsMode = el.hintsModeToggle.checked;
     updateCoach();

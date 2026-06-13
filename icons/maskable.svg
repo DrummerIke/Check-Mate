@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="BORK Chess">
+  <rect width="64" height="64" rx="14" fill="#151211"/>
+  <path d="M20 49h24v-6c-2-4-6-6-12-6s-10 2-12 6v6Z" fill="#f2e8dc" stroke="rgba(239,111,46,.5)" stroke-width="2"/>
+  <path d="M24 37h16l3-18-7 5-4-10-4 10-7-5 3 18Z" fill="#2a2421" stroke="#f2e8dc" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M32 12v16M27 20h10" stroke="#ef6f2e" stroke-width="2.4" stroke-linecap="round"/>
+</svg>

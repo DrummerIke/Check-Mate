@@ -23,7 +23,7 @@ function tone({ frequency = 420, duration = 0.08, gain = 0.045, type = "sine", s
   osc.frequency.setValueAtTime(frequency, start);
   if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(40, frequency + slide), start + duration);
   filter.type = "lowpass";
-  filter.frequency.setValueAtTime(1800, start);
+  filter.frequency.setValueAtTime(1050, start);
   amp.gain.setValueAtTime(0.0001, start);
   amp.gain.exponentialRampToValueAtTime(gain, start + 0.012);
   amp.gain.exponentialRampToValueAtTime(0.0001, start + duration);
@@ -44,18 +44,18 @@ export function setSoundEnabled(value) {
 }
 
 export function playMove() {
-  tone({ frequency: 360, duration: 0.055, gain: 0.035, type: "triangle", slide: -32 });
-  tone({ frequency: 190, duration: 0.07, gain: 0.028, type: "sine", delay: 0.018 });
+  tone({ frequency: 220, duration: 0.045, gain: 0.020, type: "triangle", slide: -22 });
+  tone({ frequency: 132, duration: 0.055, gain: 0.014, type: "sine", delay: 0.016 });
 }
 
 export function playCapture() {
-  tone({ frequency: 260, duration: 0.075, gain: 0.045, type: "triangle", slide: -80 });
-  tone({ frequency: 620, duration: 0.04, gain: 0.022, type: "sine", delay: 0.025 });
+  tone({ frequency: 185, duration: 0.065, gain: 0.026, type: "triangle", slide: -55 });
+  tone({ frequency: 340, duration: 0.035, gain: 0.014, type: "sine", delay: 0.022 });
 }
 
 export function playCheck() {
-  tone({ frequency: 520, duration: 0.09, gain: 0.038, type: "sine" });
-  tone({ frequency: 780, duration: 0.075, gain: 0.026, type: "triangle", delay: 0.055 });
+  tone({ frequency: 420, duration: 0.06, gain: 0.022, type: "sine" });
+  tone({ frequency: 620, duration: 0.045, gain: 0.014, type: "triangle", delay: 0.045 });
 }
 
 export function playGameOver() {
@@ -64,7 +64,7 @@ export function playGameOver() {
 }
 
 export function playIllegal() {
-  tone({ frequency: 130, duration: 0.07, gain: 0.035, type: "sawtooth", slide: -30 });
+  tone({ frequency: 118, duration: 0.045, gain: 0.012, type: "triangle", slide: -18 });
 }
 
 export function playStart() {

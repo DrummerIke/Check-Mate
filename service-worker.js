@@ -10,6 +10,9 @@ const ASSETS = [
   "./pieces.js",
   "./stockfish-worker.js",
   "./manifest.webmanifest",
+  "./icons/favicon.svg",
+  "./icons/icon.svg",
+  "./icons/maskable.svg",
 ];
 
 self.addEventListener("install", (event) => {

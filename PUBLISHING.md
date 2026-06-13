@@ -37,16 +37,19 @@ stockfish-worker.js
 service-worker.js
 manifest.webmanifest
 pieces-preview.html
+icons/favicon.svg
+icons/icon.svg
+icons/maskable.svg
 ```
 
-Не переносите `icons/`, изображения, `.wasm`, `.bin` и другие бинарные ассеты до успешного merge/publish.
+Переносите только текстовые SVG-иконки из `icons/` (`favicon.svg`, `icon.svg`, `maskable.svg`). Не переносите PNG/JPG/ICO, `.wasm`, `.bin` и другие бинарные ассеты до успешного merge/publish.
 
 ## 3. Проверить, что ветка text-only
 
 Команда по расширениям изображений и бинарных payload-файлов должна ничего не вывести:
 
 ```bash
-git ls-files | rg -n '\.(png|jpg|jpeg|webp|gif|ico|svg|wasm|bin)$' || true
+git ls-files | rg -n '\.(png|jpg|jpeg|webp|gif|ico|wasm|bin)$' || true
 ```
 
 Проверка NUL-байтов должна показать пустой список:
@@ -81,12 +84,12 @@ git push -u origin publish-text-only
 
 После этого откройте новый PR из `publish-text-only`. Старый PR с ошибкой бинарных файлов лучше закрыть, чтобы платформа не пыталась переиспользовать проблемную историю.
 
-## 5. Вернуть иконки после публикации
+## 5. Иконки
 
-Иконки добавляйте только после успешного merge/publish text-only версии. Если хостинг позволит, можно вручную добавить один из вариантов:
+Текущий PWA использует только текстовые SVG-иконки, поэтому их можно переносить вместе с text-only веткой:
 
-- `icons/icon.svg`
 - `icons/favicon.svg`
-- PNG-иконки `icons/icon-192.png` и `icons/icon-512.png`
+- `icons/icon.svg`
+- `icons/maskable.svg`
 
-После добавления иконок повторите проверки из раздела 3 и убедитесь, что выбранная платформа уже принимает такие ассеты.
+PNG/JPG/ICO-иконки добавляйте только отдельным изменением после успешного merge/publish и только если платформа уже принимает бинарные ассеты. После любого изменения иконок повторите проверки из раздела 3.
