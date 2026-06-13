@@ -182,6 +182,7 @@ const el = {
   tacticTitle: document.querySelector("#tacticTitle"),
   tacticText: document.querySelector("#tacticText"),
   tacticsPanel: document.querySelector("#tacticsPanel"),
+  tacticLibrary: document.querySelector("#tacticLibrary"),
   strategyText: document.querySelector("#strategyText"),
   experienceGrid: document.querySelector("#experienceGrid"),
   wins: document.querySelector("#wins"),
@@ -571,6 +572,29 @@ function renderTactic() {
   const tactic = TACTICS[tacticIndex % TACTICS.length];
   el.tacticTitle.textContent = tactic.title;
   el.tacticText.textContent = tactic.text;
+
+  if (el.tacticLibrary) {
+    el.tacticLibrary.querySelectorAll("button").forEach((button, index) => {
+      button.classList.toggle("active", index === tacticIndex % TACTICS.length);
+    });
+  }
+}
+
+function renderTacticLibrary() {
+  if (!el.tacticLibrary) return;
+
+  el.tacticLibrary.innerHTML = TACTICS.map((tactic, index) => `
+    <button class="tactic-chip ${index === tacticIndex ? "active" : ""}" data-tactic-index="${index}">
+      ${tactic.title}
+    </button>
+  `).join("");
+
+  el.tacticLibrary.querySelectorAll("[data-tactic-index]").forEach(button => {
+    button.addEventListener("click", () => {
+      tacticIndex = Number(button.dataset.tacticIndex);
+      renderTactic();
+    });
+  });
 }
 
 function evaluateBoard() {
@@ -849,9 +873,8 @@ function initInteractions() {
       if (activeExperience === "combo") {
         noviceMode = true;
         el.noviceModeToggle.checked = true;
-        el.tacticsPanel.open = true;
-      } else {
-        el.tacticsPanel.open = false;
+        tacticIndex = 0;
+        renderTactic();
       }
       updateCoach();
     });
@@ -873,6 +896,7 @@ function initInteractions() {
 
 async function init() {
   renderStats();
+  renderTacticLibrary();
   renderTactic();
   el.strategyText.textContent = STRATEGIES[activeStrategy];
   initInteractions();

@@ -112,6 +112,14 @@
             <div class="turn-indicator" id="turnIndicator">—</div>
           </div>
 
+          <section class="panel-block coach-block is-muted coach-strip" id="coachPanel">
+            <div class="panel-header">
+              <h3>Тренер</h3>
+              <span class="tiny-badge" id="openingBadge">План</span>
+            </div>
+            <p id="coachText">Подсказки появятся здесь — прямо над доской.</p>
+          </section>
+
           <div class="board-stage">
             <div class="board-wrap">
               <div class="coordinates file-coordinates top-files" id="topFiles"></div>
@@ -138,20 +146,15 @@
             <div class="metric"><span>Ничьи</span><strong id="draws">0</strong></div>
           </div>
 
-          <section class="panel-block coach-block is-muted" id="coachPanel">
+          <section class="panel-block tactics-block" id="tacticsPanel">
             <div class="panel-header">
-              <h3>Тренер</h3>
-              <span class="tiny-badge" id="openingBadge">Позиция</span>
+              <h3>Библиотека тактик</h3>
+              <button class="tiny-btn" id="nextTacticBtn">Далее</button>
             </div>
-            <p id="coachText">Включите подсказки, если хотите разбирать силу ходов и планы.</p>
-          </section>
-
-          <details class="panel-block tactics-block" id="tacticsPanel">
-            <summary>Тактика</summary>
             <strong id="tacticTitle">Связка</strong>
             <p id="tacticText">Фигура не может уйти, потому что за ней стоит более ценная фигура или король.</p>
-            <button class="tiny-btn" id="nextTacticBtn">Следующая идея</button>
-          </details>
+            <div class="tactic-library" id="tacticLibrary"></div>
+          </section>
 
           <details class="panel-block" open>
             <summary>Ходы партии</summary>

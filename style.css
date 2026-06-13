@@ -625,3 +625,73 @@ body.game-active .hero-card {
     radial-gradient(circle at 76% 18%, rgba(255, 106, 33, 0.10), transparent 25%),
     linear-gradient(145deg, rgba(34, 29, 26, 0.96), rgba(13, 11, 10, 0.98));
 }
+
+/* Game-first refinement: coach sits where the decision happens — above the board. */
+.game-card {
+  grid-template-rows: auto auto 1fr auto;
+}
+
+.coach-strip {
+  margin: 0 0 10px;
+  background:
+    linear-gradient(135deg, rgba(255, 106, 33, 0.13), rgba(255,255,255,0.035)),
+    rgba(16, 13, 12, 0.72);
+  border-color: rgba(255, 106, 33, 0.24);
+}
+
+.coach-strip .panel-header {
+  margin-bottom: 6px;
+}
+
+.coach-strip p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(247, 241, 234, 0.78);
+}
+
+.tactics-block {
+  order: 2;
+}
+
+.tactics-block > .panel-header {
+  margin-bottom: 10px;
+}
+
+.tactic-library {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.tactic-chip {
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.035);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.tactic-chip.active {
+  color: #1b120e;
+  border-color: var(--accent);
+  background: var(--accent);
+  font-weight: 800;
+}
+
+.side-panel .technical-block {
+  display: none;
+}
+
+body.game-active .side-panel {
+  gap: 10px;
+}
+
+@media (max-width: 1280px) {
+  body.game-active .side-panel {
+    grid-template-columns: 0.7fr 1.2fr 1fr;
+  }
+}
