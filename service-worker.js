@@ -8,7 +8,6 @@ const ASSETS = [
   "./audio.js",
   "./stockfish-worker.js",
   "./manifest.webmanifest",
-  "./icons/icon.svg",
 ];
 
 self.addEventListener("install", (event) => {

@@ -9,7 +9,7 @@
 - `app.js` — логика chess.js, режимы AI/PvP/тренировки, Stockfish fallback, подсветки ходов, promotion picker, тренер, голосовые подсказки, статистика, настройки и PWA-регистрация.
 - `engine.js` и `stockfish-worker.js` — Web Worker-обёртка Stockfish с уровнями Skill/Depth/Move Time и безопасным fallback, если движок не загрузился.
 - `audio.js` — локальный Web Audio API для мягких звуков хода, взятия, шаха, конца партии, ошибки и переключателей без тяжёлых аудиофайлов.
-- `manifest.webmanifest`, `service-worker.js`, `icons/icon.svg` — установка на телефон, кеширование основных файлов и BORK-иконка приложения.
+- `manifest.webmanifest` и `service-worker.js` — установка на телефон и кеширование основных текстовых файлов без иконок/бинарных ассетов.
 
 ## Как запустить локально
 
@@ -28,7 +28,7 @@ http://localhost:8000
 ## Как развернуть на GitHub Pages
 
 1. Создайте новый репозиторий, например `bork-chess`.
-2. Загрузите в него файлы проекта: `index.html`, `style.css`, `app.js`, `audio.js`, `engine.js`, `stockfish-worker.js`, `service-worker.js`, `manifest.webmanifest`, `icons/icon.svg`, `README.md`.
+2. Загрузите в него только текстовые файлы проекта: `index.html`, `style.css`, `app.js`, `audio.js`, `engine.js`, `stockfish-worker.js`, `service-worker.js`, `manifest.webmanifest`, `.gitattributes`, `PUBLISHING.md`, `README.md`.
 3. Откройте репозиторий на GitHub.
 4. Перейдите в `Settings` → `Pages`.
 5. В разделе `Build and deployment` выберите:
@@ -41,6 +41,10 @@ http://localhost:8000
 ```text
 https://ВАШ_ЛОГИН.github.io/bork-chess/
 ```
+
+
+
+> Если интерфейс публикации или обновления ветки пишет, что бинарные файлы не поддерживаются, не нажимайте повторно `Update branch` в старом PR. Используйте инструкцию [PUBLISHING.md](./PUBLISHING.md): создайте чистую text-only ветку от актуального `main`, перенесите только текстовые файлы и откройте новый PR. Иконки лучше добавить отдельным изменением уже после успешного merge/publish.
 
 ## Как вставить в Google Sites
 
