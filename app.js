@@ -453,12 +453,12 @@ function explainPlayerMove(move) {
 
   const loss = best.score - played.score;
   if (loss < 25) {
-    return `Сильный ход: ${move.san}. Он почти не уступает лучшему варианту и сохраняет инициативу.`;
+    return `Сильный ход: ${move.san}. Причина: ${moveReason(move)}.`;
   }
   if (loss < 90) {
-    return `Нормальный ход: ${move.san}. Но сильнее выглядело ${best.move.san}: там больше активности или меньше слабостей.`;
+    return `Нормальный ход: ${move.san}. Но сильнее выглядело ${best.move.san}: ${moveReason(best.move)}.`;
   }
-  return `Слабый ход: ${move.san}. Лучше было ${best.move.san}: этот вариант заметно лучше по материалу, безопасности короля или активности фигур.`;
+  return `Слабый ход: ${move.san}. Лучше было ${best.move.san}: ${moveReason(best.move)}.`;
 }
 
 function getOpeningMatch() {
@@ -489,6 +489,26 @@ function materialSummary() {
   return score > 0 ? "У вас материальный перевес — упрощайте и не отдавайте короля." : "Материала меньше — ищите активность, шахи и тактические ресурсы.";
 }
 
+function moveReason(move) {
+  if (!move) return "улучшает позицию";
+  if (move.san.includes("#")) return "создаёт матовую угрозу или завершает атаку";
+  if (move.san.includes("+")) return "даёт шах и заставляет соперника реагировать";
+  if (move.captured) return `выигрывает или разменивает фигуру на ${move.to}`;
+  if (["n", "b"].includes(move.piece) && ["1", "8"].includes(move.from[1])) return "развивает фигуру с начальной позиции";
+  if (["e4", "d4", "e5", "d5", "c4", "c5"].includes(move.to)) return "борется за центр";
+  if (move.san === "O-O" || move.san === "O-O-O") return "уводит короля в безопасность";
+  return "улучшает активность фигур и не создаёт явной слабости";
+}
+
+function bestCandidateText() {
+  if (!gameStarted || game.turn() !== playerColor || isGameOver()) return "";
+
+  const best = scoreMovesFor(playerColor, 1)[0];
+  if (!best) return "";
+
+  return `Кандидат на ход: ${best.move.san} — ${moveReason(best.move)}.`;
+}
+
 function updateCoach() {
   if (!el.coachText || !game) return;
 
@@ -511,9 +531,11 @@ function updateCoach() {
   const openingText = opening ? `Дебют: ${opening.name}. ${opening.idea}` : "Дебютная схема уже не очевидна: играйте по принципам — безопасность короля, активные фигуры, контроль центра.";
   const strategyText = STRATEGIES[activeStrategy] ? ` Фокус тренировки: ${STRATEGIES[activeStrategy]}` : "";
   const noviceText = noviceMode ? ` ${materialSummary()} Перед ходом проверьте шахи, взятия и угрозы за обе стороны.` : "";
+  const candidateText = bestCandidateText();
   const moveText = lastMoveAdvice ? ` ${lastMoveAdvice}` : "";
+  const candidate = candidateText ? ` ${candidateText}` : "";
 
-  el.coachText.textContent = `${openingText} Сейчас ${activeSide}.${checks}${strategyText}${noviceText}${moveText}`;
+  el.coachText.textContent = `${openingText} Сейчас ${activeSide}.${checks}${strategyText}${noviceText}${moveText}${candidate}`;
 }
 
 function renderTactic() {
@@ -671,6 +693,18 @@ async function botMove() {
   renderBoard();
 }
 
+function returnToSetup() {
+  gameStarted = false;
+  botThinking = false;
+  selectedSquare = null;
+  legalTargets = [];
+  lastMove = null;
+  lastMoveAdvice = "";
+  document.body.classList.remove("game-active");
+  if (game) renderBoard();
+  toast("Выберите настройки новой партии");
+}
+
 function startGame(options = {}) {
   playerColor = options.color || playerColor;
   difficulty = Number(options.level || difficulty);
@@ -751,7 +785,7 @@ function initInteractions() {
 
   el.startBtn.addEventListener("click", () => startGame());
   el.demoBtn.addEventListener("click", () => startGame({ color: "w", level: 2 }));
-  el.newGameBtn.addEventListener("click", () => startGame());
+  el.newGameBtn.addEventListener("click", returnToSetup);
   el.undoBtn.addEventListener("click", undoMove);
   el.flipBtn.addEventListener("click", () => {
     boardOrientation = boardOrientation === "w" ? "b" : "w";

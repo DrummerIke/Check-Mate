@@ -382,3 +382,63 @@ textarea {
   .board-line { gap: 0; }
   .action-bar, .cta-row { grid-template-columns: 1fr; }
 }
+
+/* Flow: before a game we sell the experience; during a game we remove setup noise. */
+body:not(.game-active) .hero-grid {
+  grid-template-columns: minmax(320px, 620px);
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 132px);
+}
+
+body:not(.game-active) .command-panel {
+  min-height: auto;
+  padding: clamp(22px, 4vw, 34px);
+}
+
+body:not(.game-active) .game-card,
+body:not(.game-active) .side-panel {
+  display: none;
+}
+
+body:not(.game-active) .intro-copy {
+  text-align: center;
+}
+
+body:not(.game-active) .subtitle {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 480px;
+}
+
+body.game-active .hero-grid {
+  grid-template-columns: minmax(520px, 1fr) minmax(260px, 320px);
+}
+
+body.game-active .command-panel {
+  display: none;
+}
+
+body.game-active .coach-block.is-muted {
+  display: none;
+}
+
+body.game-active .hero-card {
+  animation: boardReveal 0.42s ease both;
+}
+
+@keyframes boardReveal {
+  from { opacity: 0.88; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 1280px) {
+  body.game-active .hero-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  body:not(.game-active) .hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: auto;
+  }
+}
