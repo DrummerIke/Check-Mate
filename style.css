@@ -928,3 +928,68 @@ body:not(.novice-active) #undoBtn {
     font-size: clamp(22px, 9vw, 38px);
   }
 }
+
+/* Fit and classic-mode correction. */
+body.game-active {
+  --board-size: min(58vh, 46vw, 540px);
+}
+
+body.game-active .coach-strip p {
+  overflow-wrap: anywhere;
+}
+
+body.game-active .board-wrap {
+  max-width: calc(100vw - 520px);
+}
+
+body.game-active .chess-board,
+body.game-active .file-coordinates {
+  width: min(var(--board-size), calc(100vw - 560px));
+}
+
+body.game-active .chess-board,
+body.game-active .rank-coordinates {
+  height: min(var(--board-size), calc(100vw - 560px));
+}
+
+.classic-pieces .square.light {
+  background: #f0d9b5;
+}
+
+.classic-pieces .square.dark {
+  background: #b58863;
+}
+
+.classic-pieces .piece.white-piece {
+  color: #fff8ed;
+  text-shadow: 0 2px 0 rgba(90, 70, 52, 0.75), 0 8px 10px rgba(0,0,0,0.32);
+}
+
+.classic-pieces .piece.black-piece {
+  color: #17110f;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.30), 0 8px 10px rgba(0,0,0,0.28);
+}
+
+.square.opponent-move {
+  box-shadow: inset 0 0 0 4px rgba(239, 111, 46, 0.88), inset 0 0 34px rgba(239, 111, 46, 0.18);
+}
+
+@media (max-width: 1280px) {
+  body.game-active {
+    --board-size: min(62vh, 86vw, 560px);
+  }
+
+  body.game-active .board-wrap {
+    max-width: 100%;
+  }
+
+  body.game-active .chess-board,
+  body.game-active .file-coordinates {
+    width: var(--board-size);
+  }
+
+  body.game-active .chess-board,
+  body.game-active .rank-coordinates {
+    height: var(--board-size);
+  }
+}

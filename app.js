@@ -148,6 +148,7 @@ let boardOrientation = "w";
 let difficulty = 1;
 let botThinking = false;
 let lastMove = null;
+let lastMoveBy = null;
 let gameStarted = false;
 let gameResultSaved = false;
 let noviceMode = false;
@@ -384,6 +385,7 @@ function renderBoard() {
       legal ? "legal" : "",
       capture ? "capture" : "",
       last ? "last-move" : "",
+      last && lastMoveBy === "bot" ? "opponent-move" : "",
       check ? "check" : "",
     ].filter(Boolean).join(" ");
 
@@ -444,10 +446,11 @@ function normalizeMove(move) {
   return { from: move.from, to: move.to, promotion: move.promotion || "q" };
 }
 
-function makeMove(move) {
+function makeMove(move, actor = "player") {
   const result = game.move(normalizeMove(move));
   if (result) {
     lastMove = { from: result.from, to: result.to };
+    lastMoveBy = actor;
     selectedSquare = null;
     legalTargets = [];
     renderBoard();
@@ -500,7 +503,7 @@ function handleSquareClick(square) {
     const move = legalTargets.find(item => item.to === square);
     const moveReview = difficulty === 5 ? { message: "" } : reviewPlayerMove(move);
     lastMoveAdvice = isNoviceLevel() ? moveReview.message : "";
-    const result = makeMove(move);
+    const result = makeMove(move, "player");
     if (result && !isGameOver()) {
       window.setTimeout(botMove, 260);
     }
@@ -807,7 +810,7 @@ async function botMove() {
 
   const move = chooseBotMove();
   if (move) {
-    makeMove(move);
+    makeMove(move, "bot");
   }
 
   botThinking = false;
@@ -820,6 +823,7 @@ function returnToSetup() {
   selectedSquare = null;
   legalTargets = [];
   lastMove = null;
+  lastMoveBy = null;
   lastMoveAdvice = "";
   document.body.classList.remove("game-active", "novice-active");
   if (game) renderBoard();
@@ -837,6 +841,7 @@ function startGame(options = {}) {
   selectedSquare = null;
   legalTargets = [];
   lastMove = null;
+  lastMoveBy = null;
   lastMoveAdvice = "";
 
   document.querySelectorAll("[data-color]").forEach(button => {
@@ -875,6 +880,7 @@ function undoMove() {
 
   const history = game.history({ verbose: true });
   lastMove = history.length ? { from: history.at(-1).from, to: history.at(-1).to } : null;
+  lastMoveBy = null;
   gameResultSaved = false;
   resetQualityStats();
   selectedSquare = null;
