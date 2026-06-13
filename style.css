@@ -993,3 +993,104 @@ body.game-active .rank-coordinates {
     height: var(--board-size);
   }
 }
+
+/* PWA / premium result layer / PvP controls. */
+.result-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(12, 10, 9, 0.62);
+  backdrop-filter: blur(14px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.24s ease;
+}
+
+.result-modal.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.result-card {
+  width: min(560px, 100%);
+  border: 1px solid rgba(239, 111, 46, 0.34);
+  border-radius: 28px;
+  padding: clamp(22px, 4vw, 34px);
+  background:
+    radial-gradient(circle at 80% 0%, rgba(239,111,46,0.18), transparent 32%),
+    rgba(31, 27, 25, 0.94);
+  box-shadow: 0 40px 120px rgba(0,0,0,0.55);
+  transform: translateY(12px) scale(0.98);
+  transition: transform 0.24s ease;
+}
+
+.result-modal.show .result-card {
+  transform: translateY(0) scale(1);
+}
+
+.result-card h2 {
+  margin-top: 8px;
+}
+
+.result-card p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.result-meta {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.result-meta div {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(255,255,255,0.035);
+}
+
+.result-meta dt {
+  color: var(--muted-2);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.result-meta dd {
+  margin: 5px 0 0;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.result-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 10px;
+}
+
+body:not(.pvp-active) #drawBtn {
+  display: none;
+}
+
+body.pvp-active .turn-indicator::after {
+  content: " · PvP";
+  color: var(--accent);
+}
+
+@media (display-mode: standalone) {
+  .app-shell {
+    padding-top: max(14px, env(safe-area-inset-top));
+  }
+}
+
+@media (max-width: 760px) {
+  .result-actions,
+  .result-meta {
+    grid-template-columns: 1fr;
+  }
+}

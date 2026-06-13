@@ -1,0 +1,14 @@
+{
+  "name": "BORK Chess",
+  "short_name": "BORK Chess",
+  "description": "Закрытая интеллектуальная шахматная комната BORK.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1f1b19",
+  "theme_color": "#1f1b19",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "./icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

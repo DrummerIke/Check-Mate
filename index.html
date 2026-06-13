@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="BORK Chess — онлайн шахматы против AI-бота в премиальном интерфейсе." />
+  <meta name="theme-color" content="#1f1b19" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./icons/icon.svg" />
   <title>BORK Chess</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://esm.sh">
@@ -49,6 +55,14 @@
             </div>
 
             <div class="control-group compact-control">
+              <span class="control-label">Режим</span>
+              <div class="segmented">
+                <button class="segment active" data-game-mode="ai">Против AI</button>
+                <button class="segment" data-game-mode="pvp">Два игрока</button>
+              </div>
+            </div>
+
+            <div class="control-group compact-control">
               <span class="control-label">Цвет</span>
               <div class="segmented">
                 <button class="segment active" data-color="w">Белые</button>
@@ -61,7 +75,7 @@
               <div class="control-group">
                 <span class="control-label">Сила соперника</span>
                 <div class="difficulty-grid" id="difficultyGrid">
-                  <button class="difficulty active" data-level="1"><strong>Новичок</strong><span>обучающий темп</span></button>
+                  <button class="difficulty active" data-level="1"><strong>Разминка</strong><span>обучающий темп</span></button>
                   <button class="difficulty" data-level="2"><strong>Классика</strong><span>ровная игра</span></button>
                   <button class="difficulty" data-level="3"><strong>Стратегия</strong><span>позиционный расчёт</span></button>
                   <button class="difficulty" data-level="4"><strong>Эксперт</strong><span>жёсткая защита</span></button>
@@ -70,6 +84,10 @@
               </div>
 
               <div class="mode-switches">
+                <label class="switch-line">
+                  <input type="checkbox" id="autoFlipToggle" checked />
+                  <span>Автоповорот в PvP</span>
+                </label>
                 <label class="switch-line">
                   <input type="checkbox" id="hintsModeToggle" />
                   <span>Подсказки тренера</span>
@@ -143,6 +161,8 @@
           <div class="action-bar">
             <button id="newGameBtn">Настроить заново</button>
             <button id="undoBtn">Отменить ход</button>
+            <button id="drawBtn">Ничья</button>
+            <button id="resignBtn">Сдаться</button>
             <button id="flipBtn">Развернуть</button>
           </div>
         </section>
@@ -180,6 +200,24 @@
         </aside>
       </div>
     </section>
+
+    <div class="result-modal" id="resultModal" aria-hidden="true">
+      <div class="result-card">
+        <span class="mini-label">BORK CHESS</span>
+        <h2 id="resultTitle">Партия завершена</h2>
+        <p id="resultSummary">Баланс сохранён.</p>
+        <dl class="result-meta">
+          <div><dt>Ходы</dt><dd id="resultMoves">0</dd></div>
+          <div><dt>Уровень</dt><dd id="resultLevel">—</dd></div>
+          <div><dt>Цвет</dt><dd id="resultColor">—</dd></div>
+        </dl>
+        <div class="result-actions">
+          <button class="primary-btn" id="resultNewBtn">Новая партия</button>
+          <button class="ghost-btn" id="resultPgnBtn">Скопировать PGN</button>
+          <button class="tiny-btn" id="resultCloseBtn">Закрыть</button>
+        </div>
+      </div>
+    </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </main>

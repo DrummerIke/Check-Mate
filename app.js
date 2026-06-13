@@ -1,3 +1,5 @@
+import { StockfishEngine, STOCKFISH_LEVELS } from "./engine.js";
+
 const PIECES = {
   wp: "♙", wn: "♘", wb: "♗", wr: "♖", wq: "♕", wk: "♔",
   bp: "♟", bn: "♞", bb: "♝", br: "♜", bq: "♛", bk: "♚",
@@ -103,7 +105,7 @@ const POSITION_BONUS = {
 };
 
 const LEVELS = {
-  1: { label: "Новичок", depth: 1, randomness: 0.32, blunder: 0.18 },
+  1: { label: "Разминка", depth: 1, randomness: 0.32, blunder: 0.18 },
   2: { label: "Классика", depth: 2, randomness: 0.16, blunder: 0.06 },
   3: { label: "Стратегия", depth: 2, randomness: 0.07, blunder: 0.01 },
   4: { label: "Эксперт", depth: 3, randomness: 0.025, blunder: 0.00 },
@@ -144,6 +146,8 @@ let game = null;
 let selectedSquare = null;
 let legalTargets = [];
 let playerColor = "w";
+let gameMode = "ai";
+let autoFlip = true;
 let boardOrientation = "w";
 let difficulty = 1;
 let botThinking = false;
@@ -160,6 +164,8 @@ let activeExperience = "free";
 let lastMoveAdvice = "";
 let qualityStats = { brilliant: 0, strong: 0, weak: 0, missed: 0 };
 let boardAlertTimer = null;
+let stockfishEngine = null;
+let stockfishReady = false;
 
 const el = {
   board: document.querySelector("#board"),
@@ -171,11 +177,14 @@ const el = {
   newGameBtn: document.querySelector("#newGameBtn"),
   undoBtn: document.querySelector("#undoBtn"),
   flipBtn: document.querySelector("#flipBtn"),
+  drawBtn: document.querySelector("#drawBtn"),
+  resignBtn: document.querySelector("#resignBtn"),
   moveList: document.querySelector("#moveList"),
   fenBox: document.querySelector("#fenBox"),
   toast: document.querySelector("#toast"),
   copyPgnBtn: document.querySelector("#copyPgnBtn"),
   noviceModeToggle: document.querySelector("#noviceModeToggle"),
+  autoFlipToggle: document.querySelector("#autoFlipToggle"),
   hintsModeToggle: document.querySelector("#hintsModeToggle"),
   pieceStyleBtn: document.querySelector("#pieceStyleBtn"),
   coachPanel: document.querySelector("#coachPanel"),
@@ -193,6 +202,15 @@ const el = {
   weakMoves: document.querySelector("#weakMoves"),
   missedMoves: document.querySelector("#missedMoves"),
   boardAlert: document.querySelector("#boardAlert"),
+  resultModal: document.querySelector("#resultModal"),
+  resultTitle: document.querySelector("#resultTitle"),
+  resultSummary: document.querySelector("#resultSummary"),
+  resultMoves: document.querySelector("#resultMoves"),
+  resultLevel: document.querySelector("#resultLevel"),
+  resultColor: document.querySelector("#resultColor"),
+  resultNewBtn: document.querySelector("#resultNewBtn"),
+  resultPgnBtn: document.querySelector("#resultPgnBtn"),
+  resultCloseBtn: document.querySelector("#resultCloseBtn"),
   experienceGrid: document.querySelector("#experienceGrid"),
   wins: document.querySelector("#wins"),
   losses: document.querySelector("#losses"),
@@ -209,6 +227,45 @@ function getStats() {
   } catch {
     return { wins: 0, losses: 0, draws: 0 };
   }
+}
+
+function getPvpStats() {
+  try {
+    return JSON.parse(localStorage.getItem("borkChessPvpStats")) || { white: 0, black: 0, draws: 0 };
+  } catch {
+    return { white: 0, black: 0, draws: 0 };
+  }
+}
+
+function setPvpStats(stats) {
+  localStorage.setItem("borkChessPvpStats", JSON.stringify(stats));
+  renderStats();
+}
+
+function saveSettings() {
+  localStorage.setItem("borkChessSettings", JSON.stringify({ gameMode, playerColor, difficulty, boardOrientation, autoFlip, pieceStyle }));
+}
+
+function loadSettings() {
+  try {
+    const settings = JSON.parse(localStorage.getItem("borkChessSettings"));
+    if (!settings) return;
+    gameMode = settings.gameMode || gameMode;
+    playerColor = settings.playerColor || playerColor;
+    difficulty = Number(settings.difficulty || difficulty);
+    autoFlip = settings.autoFlip ?? autoFlip;
+    pieceStyle = settings.pieceStyle || pieceStyle;
+  } catch {}
+}
+
+function syncSettingsUi() {
+  document.querySelectorAll("[data-game-mode]").forEach(button => button.classList.toggle("active", button.dataset.gameMode === gameMode));
+  document.querySelectorAll("[data-color]").forEach(button => button.classList.toggle("active", button.dataset.color === playerColor));
+  document.querySelectorAll("[data-level]").forEach(button => button.classList.toggle("active", Number(button.dataset.level) === difficulty));
+  el.autoFlipToggle.checked = autoFlip;
+  document.body.classList.toggle("bork-pieces", pieceStyle === "bork");
+  document.body.classList.toggle("classic-pieces", pieceStyle === "classic");
+  el.pieceStyleBtn.textContent = pieceStyle === "bork" ? "Фигуры: BORK" : "Фигуры: классика";
 }
 
 function setStats(stats) {
@@ -243,6 +300,14 @@ function showBoardAlert(message, tone = "accent") {
 }
 
 function renderStats() {
+  if (gameMode === "pvp") {
+    const stats = getPvpStats();
+    el.wins.textContent = stats.white;
+    el.losses.textContent = stats.black;
+    el.draws.textContent = stats.draws;
+    return;
+  }
+
   const stats = getStats();
   el.wins.textContent = stats.wins;
   el.losses.textContent = stats.losses;
@@ -437,6 +502,7 @@ function statusText() {
   if (isDraw()) return "Ничья";
   if (isCheck()) return "Шах";
   if (botThinking) return "AI анализирует позицию";
+  if (gameMode === "pvp") return game.turn() === "w" ? "Ход белых" : "Ход чёрных";
   return game.turn() === playerColor ? "Ваш ход" : "Ход AI";
 }
 
@@ -469,23 +535,53 @@ function announcePositionState() {
   }
 }
 
+function showResultModal(title, summary) {
+  if (!el.resultModal) return;
+  el.resultTitle.textContent = title;
+  el.resultSummary.textContent = summary;
+  el.resultMoves.textContent = Math.ceil(game.history().length / 2);
+  el.resultLevel.textContent = gameMode === "pvp" ? "Два игрока" : LEVELS[difficulty].label;
+  el.resultColor.textContent = playerColor === "w" ? "Белые" : "Чёрные";
+  el.resultModal.classList.add("show");
+  el.resultModal.setAttribute("aria-hidden", "false");
+}
+
+function closeResultModal() {
+  el.resultModal?.classList.remove("show");
+  el.resultModal?.setAttribute("aria-hidden", "true");
+}
+
 function checkResultAndSave() {
   if (!gameStarted || gameResultSaved || !isGameOver()) return;
 
   gameResultSaved = true;
   const stats = getStats();
 
+  if (gameMode === "pvp") {
+    const pvpStats = getPvpStats();
+    if (isDraw() || isStalemate()) {
+      pvpStats.draws += 1;
+      showResultModal(isStalemate() ? "Пат. Ничья." : "Баланс сохранён.", "Партия завершена без победителя.");
+    } else if (isCheckmate()) {
+      const winnerColor = game.turn() === "w" ? "b" : "w";
+      pvpStats[winnerColor === "w" ? "white" : "black"] += 1;
+      showResultModal("Мат.", `Победа: ${winnerColor === "w" ? "белые" : "чёрные"}.`);
+    }
+    setPvpStats(pvpStats);
+    return;
+  }
+
   if (isDraw() || isStalemate()) {
     stats.draws += 1;
-    toast("Партия завершена ничьей");
+    showResultModal(isStalemate() ? "Пат. Ничья." : "Баланс сохранён.", "Партия завершена без победителя.");
   } else if (isCheckmate()) {
     const winnerColor = game.turn() === "w" ? "b" : "w";
     if (winnerColor === playerColor) {
       stats.wins += 1;
-      toast("Победа. Элегантно.");
+      showResultModal("Партия завершена. Победа.", "Мат. Расчёт реализован.");
     } else {
       stats.losses += 1;
-      toast("Поражение. Позицию можно пересобрать.");
+      showResultModal("Партия завершена. Позиция уступлена.", "Мат. Инициатива перешла к сопернику.");
     }
   }
 
@@ -494,18 +590,25 @@ function checkResultAndSave() {
 
 function handleSquareClick(square) {
   if (!gameStarted || botThinking || isGameOver()) return;
-  if (game.turn() !== playerColor) return;
+  const activeColor = gameMode === "pvp" ? game.turn() : playerColor;
+  if (game.turn() !== activeColor) return;
 
   const piece = getPiece(square);
-  const clickedOwnPiece = piece && piece.color === playerColor;
+  const clickedOwnPiece = piece && piece.color === activeColor;
 
   if (selectedSquare && isLegalTarget(square)) {
     const move = legalTargets.find(item => item.to === square);
-    const moveReview = difficulty === 5 ? { message: "" } : reviewPlayerMove(move);
+    const movingColor = game.turn();
+    const moveReview = difficulty === 5 ? { message: "" } : reviewPlayerMove(move, movingColor);
     lastMoveAdvice = isNoviceLevel() ? moveReview.message : "";
     const result = makeMove(move, "player");
     if (result && !isGameOver()) {
-      window.setTimeout(botMove, 260);
+      if (gameMode === "ai") {
+        window.setTimeout(botMove, 260);
+      } else if (autoFlip) {
+        boardOrientation = game.turn();
+        renderBoard();
+      }
     }
     return;
   }
@@ -529,8 +632,8 @@ function scoreMovesFor(color, depth = 1) {
   })).sort((a, b) => b.score - a.score);
 }
 
-function reviewPlayerMove(move) {
-  const scored = scoreMovesFor(playerColor, Math.min(2, LEVELS[difficulty].depth));
+function reviewPlayerMove(move, color = playerColor) {
+  const scored = scoreMovesFor(color, Math.min(2, LEVELS[difficulty].depth));
   const best = scored[0];
   const played = scored.find(item => item.move.from === move.from && item.move.to === move.to && (item.move.promotion || "q") === (move.promotion || "q"));
 
@@ -800,15 +903,31 @@ function chooseBotMove() {
   return scored[0].move;
 }
 
+function uciToMove(uci) {
+  if (!uci || uci.length < 4) return null;
+  return { from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] || "q" };
+}
+
 async function botMove() {
-  if (!gameStarted || isGameOver() || game.turn() === playerColor) return;
+  if (!gameStarted || gameMode !== "ai" || isGameOver() || game.turn() === playerColor) return;
 
   botThinking = true;
+  el.engineStatus.textContent = stockfishReady ? "AI анализирует позицию" : "Fallback AI";
   renderBoard();
 
-  await new Promise(resolve => setTimeout(resolve, 320));
+  await new Promise(resolve => setTimeout(resolve, 180));
 
-  const move = chooseBotMove();
+  let move = null;
+  if (stockfishReady) {
+    try {
+      move = uciToMove(await stockfishEngine.bestMove(game.fen(), difficulty));
+    } catch (error) {
+      console.warn(error);
+      stockfishReady = false;
+      el.engineStatus.textContent = "Fallback AI";
+    }
+  }
+  if (!move) move = chooseBotMove();
   if (move) {
     makeMove(move, "bot");
   }
@@ -818,6 +937,7 @@ async function botMove() {
 }
 
 function returnToSetup() {
+  if (gameStarted && !isGameOver() && !window.confirm("Текущая партия будет остановлена. Продолжить?")) return;
   gameStarted = false;
   botThinking = false;
   selectedSquare = null;
@@ -825,7 +945,7 @@ function returnToSetup() {
   lastMove = null;
   lastMoveBy = null;
   lastMoveAdvice = "";
-  document.body.classList.remove("game-active", "novice-active");
+  document.body.classList.remove("game-active", "novice-active", "pvp-active");
   if (game) renderBoard();
   toast("Выберите настройки новой партии");
 }
@@ -833,7 +953,7 @@ function returnToSetup() {
 function startGame(options = {}) {
   playerColor = options.color || playerColor;
   difficulty = Number(options.level || difficulty);
-  boardOrientation = playerColor;
+  boardOrientation = gameMode === "pvp" ? "w" : playerColor;
   game = new ChessCtor();
   gameStarted = true;
   gameResultSaved = false;
@@ -856,12 +976,14 @@ function startGame(options = {}) {
   noviceMode = isNoviceLevel();
   el.hintsModeToggle.checked = hintsMode;
   el.noviceModeToggle.checked = noviceMode;
+  saveSettings();
   document.body.classList.add("game-active");
+  document.body.classList.toggle("pvp-active", gameMode === "pvp");
   document.body.classList.toggle("novice-active", isNoviceLevel());
   toast(`Партия началась: ${LEVELS[difficulty].label}`);
   renderBoard();
 
-  if (playerColor === "b") {
+  if (gameMode === "ai" && playerColor === "b") {
     window.setTimeout(botMove, 400);
   }
 }
@@ -871,13 +993,16 @@ function undoMove() {
 
   if (game.history().length === 0) return;
 
-  if (game.turn() === playerColor) {
+  if (gameMode === "pvp") {
+    game.undo();
+  } else if (game.turn() === playerColor) {
     game.undo();
     if (game.history().length) game.undo();
   } else {
     game.undo();
   }
 
+  if (gameMode === "pvp" && autoFlip) boardOrientation = game.turn();
   const history = game.history({ verbose: true });
   lastMove = history.length ? { from: history.at(-1).from, to: history.at(-1).to } : null;
   lastMoveBy = null;
@@ -921,6 +1046,36 @@ function initInteractions() {
   el.demoBtn.addEventListener("click", () => startGame({ color: "w", level: 2 }));
   el.newGameBtn.addEventListener("click", returnToSetup);
   el.undoBtn.addEventListener("click", undoMove);
+  document.querySelectorAll("[data-game-mode]").forEach(button => {
+    button.addEventListener("click", () => {
+      gameMode = button.dataset.gameMode;
+      document.querySelectorAll("[data-game-mode]").forEach(item => item.classList.remove("active"));
+      button.classList.add("active");
+      saveSettings();
+      renderStats();
+    });
+  });
+  el.autoFlipToggle.addEventListener("change", () => {
+    autoFlip = el.autoFlipToggle.checked;
+    saveSettings();
+  });
+  el.drawBtn.addEventListener("click", () => {
+    if (gameMode === "pvp" && gameStarted && window.confirm("Согласовать ничью?")) {
+      gameResultSaved = true;
+      const pvpStats = getPvpStats();
+      pvpStats.draws += 1;
+      setPvpStats(pvpStats);
+      showResultModal("Баланс сохранён.", "Ничья по соглашению.");
+    }
+  });
+  el.resignBtn.addEventListener("click", () => {
+    if (!gameStarted || !window.confirm("Сдаться в текущей партии?")) return;
+    gameResultSaved = true;
+    showResultModal("Партия завершена. Позиция уступлена.", gameMode === "pvp" ? "Партия завершена сдачей." : "Вы выбрали завершить игру.");
+  });
+  el.resultNewBtn.addEventListener("click", () => { closeResultModal(); returnToSetup(); });
+  el.resultPgnBtn.addEventListener("click", copyPgn);
+  el.resultCloseBtn.addEventListener("click", closeResultModal);
   el.flipBtn.addEventListener("click", () => {
     boardOrientation = boardOrientation === "w" ? "b" : "w";
     renderBoard();
@@ -977,6 +1132,8 @@ function initInteractions() {
 }
 
 async function init() {
+  loadSettings();
+  syncSettingsUi();
   renderStats();
   applyExperienceState();
   renderTacticLibrary();
@@ -987,9 +1144,20 @@ async function init() {
   try {
     await loadChess();
     game = new ChessCtor();
-    el.engineStatus.textContent = "Движок готов";
+    el.engineStatus.textContent = "Правила готовы";
     el.engineStatus.classList.add("ready");
     renderBoard();
+
+    try {
+      stockfishEngine = new StockfishEngine({ onStatus: (status) => { el.engineStatus.textContent = status; } });
+      await stockfishEngine.init();
+      stockfishReady = true;
+      el.engineStatus.textContent = "Stockfish готов";
+    } catch (engineError) {
+      console.warn(engineError);
+      stockfishReady = false;
+      el.engineStatus.textContent = "Fallback AI";
+    }
   } catch (error) {
     console.error(error);
     el.engineStatus.textContent = "Ошибка загрузки";
@@ -1000,3 +1168,10 @@ async function init() {
 }
 
 init();
+
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(error => console.warn("Service worker failed:", error));
+  });
+}
