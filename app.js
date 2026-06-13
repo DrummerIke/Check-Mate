@@ -3,6 +3,29 @@ const PIECES = {
   bp: "♟", bn: "♞", bb: "♝", br: "♜", bq: "♛", bk: "♚",
 };
 
+
+function borkPieceSvg(type) {
+  const shapes = {
+    p: '<circle cx="50" cy="35" r="12"/><path d="M38 52h24l7 25H31z"/><path d="M27 82h46v8H27z"/>',
+    n: '<path d="M34 82h42v8H26z"/><path d="M35 76c4-22 2-38 26-52 12 7 14 19 7 30l10 8-10 8H50l-7 12z"/><circle cx="59" cy="37" r="3"/>',
+    b: '<path d="M31 82h38v8H31z"/><path d="M39 74h22l7-28L50 17 32 46z"/><path d="M50 24v42"/><path d="M42 43l16-10"/>',
+    r: '<path d="M27 82h46v8H27z"/><path d="M34 72h32V33H34z"/><path d="M31 23h10v8h8v-8h10v8h8v-8h10v18H31z"/>',
+    q: '<path d="M25 82h50v8H25z"/><path d="M33 73h34l7-42-16 16-8-24-8 24-16-16z"/><circle cx="26" cy="29" r="5"/><circle cx="50" cy="20" r="5"/><circle cx="74" cy="29" r="5"/>',
+    k: '<path d="M27 82h46v8H27z"/><path d="M35 73h30l6-34-14 8-7-20-7 20-14-8z"/><path d="M50 13v21M40 23h20"/>',
+  };
+
+  return `<svg class="bork-piece-icon" viewBox="0 0 100 100" aria-hidden="true">${shapes[type] || shapes.p}</svg>`;
+}
+
+function pieceMarkup(piece, symbol) {
+  if (!piece) return "";
+  const pieceClass = `${piece.color === "w" ? "white" : "black"}-piece`;
+  return `<span class="piece ${pieceClass}" data-piece="${piece.type}">
+    ${borkPieceSvg(piece.type)}
+    <span class="classic-symbol">${symbol}</span>
+  </span>`;
+}
+
 const PIECE_VALUE = {
   p: 100,
   n: 315,
@@ -128,6 +151,7 @@ let hintsMode = false;
 let tacticIndex = 0;
 let pieceStyle = "bork";
 let activeStrategy = "center";
+let activeExperience = "free";
 let lastMoveAdvice = "";
 
 const el = {
@@ -153,7 +177,9 @@ const el = {
   nextTacticBtn: document.querySelector("#nextTacticBtn"),
   tacticTitle: document.querySelector("#tacticTitle"),
   tacticText: document.querySelector("#tacticText"),
+  tacticsPanel: document.querySelector("#tacticsPanel"),
   strategyText: document.querySelector("#strategyText"),
+  experienceGrid: document.querySelector("#experienceGrid"),
   wins: document.querySelector("#wins"),
   losses: document.querySelector("#losses"),
   draws: document.querySelector("#draws"),
@@ -317,9 +343,8 @@ function renderBoard() {
     ].filter(Boolean).join(" ");
 
     const pieceSymbol = piece ? PIECES[`${piece.color}${piece.type}`] : "";
-    const pieceClass = piece ? `${piece.color === "w" ? "white" : "black"}-piece` : "";
     return `<button class="${classes}" data-square="${square}" aria-label="${square}">
-      <span class="piece ${pieceClass}">${pieceSymbol}</span>
+      ${pieceMarkup(piece, pieceSymbol)}
     </button>`;
   }).join("");
 
@@ -529,13 +554,14 @@ function updateCoach() {
   const activeSide = game.turn() === playerColor ? "ваш ход" : "ход соперника";
   const checks = isCheck() ? " Сейчас шах: сначала уберите угрозу королю." : "";
   const openingText = opening ? `Дебют: ${opening.name}. ${opening.idea}` : "Дебютная схема уже не очевидна: играйте по принципам — безопасность короля, активные фигуры, контроль центра.";
+  const experienceText = activeExperience === "combo" ? " Режим комбинаций: ищите форсированные ходы — шахи, взятия и угрозы." : activeExperience === "coach" ? " Режим тренера: цель — понять качество каждого решения." : "";
   const strategyText = STRATEGIES[activeStrategy] ? ` Фокус тренировки: ${STRATEGIES[activeStrategy]}` : "";
   const noviceText = noviceMode ? ` ${materialSummary()} Перед ходом проверьте шахи, взятия и угрозы за обе стороны.` : "";
   const candidateText = bestCandidateText();
   const moveText = lastMoveAdvice ? ` ${lastMoveAdvice}` : "";
   const candidate = candidateText ? ` ${candidateText}` : "";
 
-  el.coachText.textContent = `${openingText} Сейчас ${activeSide}.${checks}${strategyText}${noviceText}${moveText}${candidate}`;
+  el.coachText.textContent = `${openingText} Сейчас ${activeSide}.${checks}${experienceText}${strategyText}${noviceText}${moveText}${candidate}`;
 }
 
 function renderTactic() {
@@ -807,6 +833,25 @@ function initInteractions() {
     document.body.classList.toggle("bork-pieces", pieceStyle === "bork");
     document.body.classList.toggle("classic-pieces", pieceStyle === "classic");
     el.pieceStyleBtn.textContent = pieceStyle === "bork" ? "Фигуры: BORK" : "Фигуры: классика";
+  });
+  document.querySelectorAll("[data-experience]").forEach(button => {
+    button.addEventListener("click", () => {
+      activeExperience = button.dataset.experience;
+      document.querySelectorAll("[data-experience]").forEach(item => item.classList.remove("active"));
+      button.classList.add("active");
+      if (activeExperience !== "free") {
+        hintsMode = true;
+        el.hintsModeToggle.checked = true;
+      }
+      if (activeExperience === "combo") {
+        noviceMode = true;
+        el.noviceModeToggle.checked = true;
+        el.tacticsPanel.open = true;
+      } else {
+        el.tacticsPanel.open = false;
+      }
+      updateCoach();
+    });
   });
   document.querySelectorAll("[data-strategy]").forEach(button => {
     button.addEventListener("click", () => {

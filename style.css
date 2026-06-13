@@ -442,3 +442,137 @@ body.game-active .hero-card {
     min-height: auto;
   }
 }
+
+.experience-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.experience-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.experience-card {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  min-height: 62px;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.032);
+  color: var(--muted);
+  text-align: left;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.experience-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent, rgba(255,255,255,0.08), transparent);
+  transform: translateX(-120%);
+  transition: transform 0.6s ease;
+}
+
+.experience-card:hover::after,
+.experience-card.active::after {
+  transform: translateX(120%);
+}
+
+.experience-card:hover {
+  transform: translateY(-1px);
+}
+
+.experience-card.active {
+  border-color: rgba(255, 106, 33, 0.46);
+  background: linear-gradient(145deg, rgba(255, 106, 33, 0.18), rgba(255,255,255,0.035));
+  color: var(--text);
+}
+
+.experience-card strong,
+.experience-card span {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+.experience-card strong {
+  font-size: 14px;
+  margin-bottom: 3px;
+}
+
+.experience-card span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.bork-piece-icon {
+  width: 76%;
+  height: 76%;
+  display: block;
+  overflow: visible;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 4.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 14px 14px rgba(0,0,0,0.28));
+}
+
+.classic-symbol {
+  display: none;
+}
+
+.bork-pieces .piece {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+}
+
+.bork-pieces .piece.white-piece {
+  color: #f4eee4;
+}
+
+.bork-pieces .piece.black-piece {
+  color: #18110d;
+}
+
+.bork-pieces .piece.white-piece .bork-piece-icon {
+  filter: drop-shadow(0 2px 0 rgba(90, 58, 40, 0.62)) drop-shadow(0 16px 15px rgba(0,0,0,0.34));
+}
+
+.bork-pieces .piece.black-piece .bork-piece-icon {
+  filter: drop-shadow(0 1px 0 rgba(255,255,255,0.20)) drop-shadow(0 14px 14px rgba(0,0,0,0.32));
+}
+
+.classic-pieces .bork-piece-icon {
+  display: none;
+}
+
+.classic-pieces .classic-symbol {
+  display: block;
+}
+
+.square:hover .piece {
+  transform: translateY(-3px) scale(1.035);
+}
+
+.square .piece {
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+.chess-board::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 30% 16%, rgba(255,255,255,0.10), transparent 24%);
+  mix-blend-mode: screen;
+}
+
+.chess-board {
+  position: relative;
+}
