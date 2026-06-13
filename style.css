@@ -1788,3 +1788,150 @@ body.game-active .game-card {
     bottom: calc(env(safe-area-inset-bottom) + 66px);
   }
 }
+
+/* Premium BORK SVG pieces: matte ivory and smoked graphite materials. */
+:root {
+  --piece-white-main: #f2e8dc;
+  --piece-white-light: #fff8ef;
+  --piece-white-shadow: #cdbca8;
+  --piece-white-stroke: rgba(31, 27, 25, 0.42);
+  --piece-black-main: #2a2421;
+  --piece-black-light: #4a403a;
+  --piece-black-shadow: #100d0c;
+  --piece-black-stroke: rgba(239, 111, 46, 0.45);
+  --bork-accent: #ef6f2e;
+}
+
+.piece {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  z-index: 2;
+}
+
+.piece-svg {
+  width: 82%;
+  height: 82%;
+  display: block;
+  overflow: visible;
+  pointer-events: none;
+  transform: translateY(-1px);
+  filter:
+    drop-shadow(0 8px 8px rgba(0, 0, 0, 0.28))
+    drop-shadow(0 1px 0 rgba(255, 255, 255, 0.08));
+}
+
+.piece-svg .piece-core {
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.piece-svg .piece-highlight,
+.piece-svg .piece-cut,
+.piece-svg .piece-edge,
+.piece-svg .piece-accent,
+.piece-svg .piece-shadow {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.piece-svg .piece-edge { stroke-width: 4.2; }
+.piece-svg .piece-highlight { stroke-width: 2.8; }
+.piece-svg .piece-cut { stroke-width: 3.1; }
+.piece-svg .piece-accent { stroke-width: 3; }
+.piece-svg .piece-shadow { stroke-width: 3.4; }
+.piece-svg .piece-eye { stroke: none; }
+
+.piece-svg.piece-white .piece-core {
+  fill: var(--piece-white-main);
+  stroke: var(--piece-white-stroke);
+}
+
+.piece-svg.piece-white .piece-highlight {
+  stroke: var(--piece-white-light);
+  opacity: 0.88;
+}
+
+.piece-svg.piece-white .piece-edge,
+.piece-svg.piece-white .piece-shadow {
+  stroke: var(--piece-white-shadow);
+  opacity: 0.72;
+}
+
+.piece-svg.piece-white .piece-cut {
+  stroke: rgba(31, 27, 25, 0.30);
+}
+
+.piece-svg.piece-white .piece-accent {
+  stroke: rgba(239, 111, 46, 0.66);
+}
+
+.piece-svg.piece-white .piece-eye {
+  fill: rgba(31, 27, 25, 0.72);
+}
+
+.piece-svg.piece-black .piece-core {
+  fill: var(--piece-black-main);
+  stroke: var(--piece-black-stroke);
+}
+
+.piece-svg.piece-black .piece-highlight {
+  stroke: var(--piece-black-light);
+  opacity: 0.92;
+}
+
+.piece-svg.piece-black .piece-edge,
+.piece-svg.piece-black .piece-shadow {
+  stroke: var(--piece-black-shadow);
+  opacity: 0.78;
+}
+
+.piece-svg.piece-black .piece-cut {
+  stroke: rgba(255, 248, 239, 0.22);
+}
+
+.piece-svg.piece-black .piece-accent {
+  stroke: var(--bork-accent);
+  opacity: 0.82;
+}
+
+.piece-svg.piece-black .piece-eye {
+  fill: rgba(239, 111, 46, 0.88);
+}
+
+.square.light .piece-svg.piece-white {
+  filter: drop-shadow(0 7px 8px rgba(69, 45, 31, 0.28));
+}
+
+.square.dark .piece-svg.piece-black {
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.48));
+}
+
+.square.selected .piece-svg,
+.square.last-move .piece-svg,
+.square.check .piece-svg {
+  filter:
+    drop-shadow(0 9px 10px rgba(0, 0, 0, 0.38))
+    drop-shadow(0 0 10px rgba(239, 111, 46, 0.22));
+}
+
+.promotion-options button {
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  padding: 8px 4px 10px;
+}
+
+.promotion-options .piece-svg {
+  width: 56px;
+  height: 56px;
+}
+
+@media (max-width: 720px) {
+  .piece-svg { width: 84%; height: 84%; }
+  .promotion-options button { min-height: 92px; }
+  .promotion-options .piece-svg { width: 62px; height: 62px; }
+}

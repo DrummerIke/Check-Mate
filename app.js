@@ -10,37 +10,12 @@ import {
   playToggle,
   setSoundEnabled,
 } from "./audio.js";
+import { renderPiece } from "./pieces.js";
 
-const PIECES = {
-  wp: "♙", wn: "♘", wb: "♗", wr: "♖", wq: "♕", wk: "♔",
-  bp: "♟", bn: "♞", bb: "♝", br: "♜", bq: "♛", bk: "♚",
-};
-
-
-function borkPieceSvg(type) {
-  const shapes = {
-    p: '<circle cx="50" cy="35" r="12"/><path d="M38 52h24l7 25H31z"/><path d="M27 82h46v8H27z"/>',
-    n: '<path d="M34 82h42v8H26z"/><path d="M35 76c4-22 2-38 26-52 12 7 14 19 7 30l10 8-10 8H50l-7 12z"/><circle cx="59" cy="37" r="3"/>',
-    b: '<path d="M31 82h38v8H31z"/><path d="M39 74h22l7-28L50 17 32 46z"/><path d="M50 24v42"/><path d="M42 43l16-10"/>',
-    r: '<path d="M27 82h46v8H27z"/><path d="M34 72h32V33H34z"/><path d="M31 23h10v8h8v-8h10v8h8v-8h10v18H31z"/>',
-    q: '<path d="M25 82h50v8H25z"/><path d="M33 73h34l7-42-16 16-8-24-8 24-16-16z"/><circle cx="26" cy="29" r="5"/><circle cx="50" cy="20" r="5"/><circle cx="74" cy="29" r="5"/>',
-    k: '<path d="M27 82h46v8H27z"/><path d="M35 73h30l6-34-14 8-7-20-7 20-14-8z"/><path d="M50 13v21M40 23h20"/>',
-  };
-
-  return `<svg class="bork-piece-icon" viewBox="0 0 100 100" aria-hidden="true">
-    <g class="piece-body">${shapes[type] || shapes.p}</g>
-    <path class="piece-glint" d="M34 88h32"/>
-    <path class="piece-cut" d="M38 76h24"/>
-  </svg>`;
-}
-
-function pieceMarkup(piece, symbol) {
+function pieceMarkup(piece) {
   if (!piece) return "";
   const pieceClass = `${piece.color === "w" ? "white" : "black"}-piece`;
-  return `<span class="piece ${pieceClass}" data-piece="${piece.type}">
-    ${borkPieceSvg(piece.type)}
-    <span class="classic-symbol">${symbol}</span>
-  </span>`;
+  return `<span class="piece ${pieceClass}" data-piece="${piece.type}">${renderPiece(piece)}</span>`;
 }
 
 const PIECE_VALUE = {
@@ -299,9 +274,10 @@ function syncSettingsUi() {
   el.voiceToggle.checked = voiceEnabled;
   setSoundEnabled(soundEnabled);
   document.querySelectorAll("[data-experience]").forEach(button => button.classList.toggle("active", button.dataset.experience === activeExperience));
-  document.body.classList.toggle("bork-pieces", pieceStyle === "bork");
-  document.body.classList.toggle("classic-pieces", pieceStyle === "classic");
-  el.pieceStyleBtn.textContent = pieceStyle === "bork" ? "Фигуры: BORK" : "Фигуры: классика";
+  pieceStyle = "bork";
+  document.body.classList.add("bork-pieces");
+  document.body.classList.remove("classic-pieces");
+  el.pieceStyleBtn.textContent = "Фигуры: BORK SVG";
 }
 
 function setStats(stats) {
@@ -491,9 +467,8 @@ function renderBoard() {
       check ? "check" : "",
     ].filter(Boolean).join(" ");
 
-    const pieceSymbol = piece ? PIECES[`${piece.color}${piece.type}`] : "";
     return `<button class="${classes}" data-square="${square}" aria-label="${square}">
-      ${pieceMarkup(piece, pieceSymbol)}
+      ${pieceMarkup(piece)}
     </button>`;
   }).join("");
 
@@ -692,8 +667,17 @@ function handleSquareClick(square) {
   renderBoard();
 }
 
+function renderPromotionPieces() {
+  el.promotionModal?.querySelectorAll("[data-promotion]").forEach(button => {
+    const type = button.dataset.promotion;
+    const label = button.querySelector("span")?.outerHTML || "";
+    button.innerHTML = `${renderPiece({ color: game?.turn?.() || playerColor || "w", type })}${label}`;
+  });
+}
+
 function showPromotionPicker(moves) {
   pendingPromotion = moves;
+  renderPromotionPieces();
   el.promotionModal?.classList.add("show");
   el.promotionModal?.setAttribute("aria-hidden", "false");
 }
@@ -1228,12 +1212,13 @@ function initInteractions() {
     toast(noviceMode ? "Подробные объяснения включены" : "Подробные объяснения выключены");
   });
   el.pieceStyleBtn.addEventListener("click", () => {
-    pieceStyle = pieceStyle === "bork" ? "classic" : "bork";
+    pieceStyle = "bork";
     playToggle();
-    document.body.classList.toggle("bork-pieces", pieceStyle === "bork");
-    document.body.classList.toggle("classic-pieces", pieceStyle === "classic");
-    el.pieceStyleBtn.textContent = pieceStyle === "bork" ? "Фигуры: BORK" : "Фигуры: классика";
+    document.body.classList.add("bork-pieces");
+    document.body.classList.remove("classic-pieces");
+    el.pieceStyleBtn.textContent = "Фигуры: BORK SVG";
     saveSettings();
+    renderBoard();
   });
   document.querySelectorAll("[data-experience]").forEach(button => {
     button.addEventListener("click", () => {
@@ -1292,6 +1277,7 @@ async function init() {
   applyExperienceState();
   renderTacticLibrary();
   renderTactic();
+  renderPromotionPieces();
   el.strategyText.textContent = STRATEGIES[activeStrategy];
   initInteractions();
 

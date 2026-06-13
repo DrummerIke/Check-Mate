@@ -30,11 +30,13 @@ PUBLISHING.md
 index.html
 style.css
 app.js
+pieces.js
 audio.js
 engine.js
 stockfish-worker.js
 service-worker.js
 manifest.webmanifest
+pieces-preview.html
 ```
 
 Не переносите `icons/`, изображения, `.wasm`, `.bin` и другие бинарные ассеты до успешного merge/publish.

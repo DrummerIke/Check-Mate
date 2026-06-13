@@ -2,10 +2,12 @@ const CACHE_NAME = "bork-chess-v2";
 const ASSETS = [
   "./",
   "./index.html",
+  "./pieces-preview.html",
   "./style.css",
   "./app.js",
   "./engine.js",
   "./audio.js",
+  "./pieces.js",
   "./stockfish-worker.js",
   "./manifest.webmanifest",
 ];
