@@ -1,0 +1,10 @@
+export const PUZZLES = [
+  { id: "center-1", fen: "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", bestMove: { from: "f3", to: "e5" }, san: "Nxe5", theme: "Центр", title: "Конь забирает центр", explanation: "Конь берёт пешку e5 и заставляет чёрных решать проблему центра." },
+  { id: "develop-1", fen: "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2", bestMove: { from: "g1", to: "f3" }, san: "Nf3", theme: "Развитие", title: "Развить коня", explanation: "Конь атакует e5 и готовит рокировку без ослаблений." },
+  { id: "castle-1", fen: "r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 4", bestMove: { from: "e1", to: "g1" }, san: "O-O", theme: "Безопасность", title: "Спрятать короля", explanation: "Рокировка убирает короля из центра и подключает ладью." },
+  { id: "space-1", fen: "rnbqkbnr/ppp2ppp/8/3pp3/3PP3/8/PPP2PPP/RNBQKBNR w KQkq d6 0 3", bestMove: { from: "d4", to: "e5" }, san: "dxe5", theme: "Пространство", title: "Продвинуть центр", explanation: "Пешка e5 отнимает важные поля и теснит фигуры соперника." },
+  { id: "gambit-1", fen: "rnbqkbnr/ppp1pppp/8/3p4/2P5/8/PP1PPPPP/RNBQKBNR w KQkq d6 0 2", bestMove: { from: "c4", to: "d5" }, san: "cxd5", theme: "Гамбит", title: "Забрать центр", explanation: "Взятие d5 открывает линии и проверяет готовность чёрных к защите центра." },
+  { id: "pin-1", fen: "rnbqk2r/pppp1ppp/5n2/2b1p3/2B1P1b1/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 5", bestMove: { from: "c4", to: "f7" }, san: "Bxf7+", theme: "Уязвимость f7", title: "Удар по королю", explanation: "Слон бьёт f7 с шахом и заставляет короля потерять право на рокировку." },
+  { id: "fork-1", fen: "r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/2N2N2/PPPP1PPP/R1BQKB1R w KQkq - 4 4", bestMove: { from: "f3", to: "e5" }, san: "Nxe5", theme: "Вилка", title: "Конь входит в центр", explanation: "Конь забирает e5 и создаёт угрозы по c6/f7." },
+  { id: "open-file-1", fen: "rnbqkbnr/pp3ppp/4p3/2pp4/3PP3/8/PPP2PPP/RNBQKBNR w KQkq c6 0 4", bestMove: { from: "e4", to: "d5" }, san: "exd5", theme: "Открытие линии", title: "Открыть центр", explanation: "Взятие d5 открывает линии для фигур и заставляет соперника уточнить структуру." }
+];

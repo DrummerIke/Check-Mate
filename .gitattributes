@@ -1,0 +1,24 @@
+# Keep the published source tree text-only for platforms that reject binary assets
+# while still classifying any future media/engine payloads correctly.
+* text=auto eol=lf
+
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+*.webmanifest text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Future optional app assets should be added only after text-only publishing works.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.svg text eol=lf
+*.wasm binary
+*.bin binary

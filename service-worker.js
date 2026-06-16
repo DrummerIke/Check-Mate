@@ -1,14 +1,19 @@
-const CACHE_NAME = "bork-chess-v2";
+const CACHE_NAME = "bork-chess-v6";
 const ASSETS = [
   "./",
   "./index.html",
+  "./pieces-preview.html",
   "./style.css",
   "./app.js",
   "./engine.js",
   "./audio.js",
+  "./pieces.js",
+  "./puzzles.js",
   "./stockfish-worker.js",
   "./manifest.webmanifest",
+  "./icons/favicon.svg",
   "./icons/icon.svg",
+  "./icons/maskable.svg",
 ];
 
 self.addEventListener("install", (event) => {

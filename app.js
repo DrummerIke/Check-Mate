@@ -10,37 +10,13 @@ import {
   playToggle,
   setSoundEnabled,
 } from "./audio.js";
+import { renderPiece } from "./pieces.js";
+import { PUZZLES } from "./puzzles.js";
 
-const PIECES = {
-  wp: "♙", wn: "♘", wb: "♗", wr: "♖", wq: "♕", wk: "♔",
-  bp: "♟", bn: "♞", bb: "♝", br: "♜", bq: "♛", bk: "♚",
-};
-
-
-function borkPieceSvg(type) {
-  const shapes = {
-    p: '<circle cx="50" cy="35" r="12"/><path d="M38 52h24l7 25H31z"/><path d="M27 82h46v8H27z"/>',
-    n: '<path d="M34 82h42v8H26z"/><path d="M35 76c4-22 2-38 26-52 12 7 14 19 7 30l10 8-10 8H50l-7 12z"/><circle cx="59" cy="37" r="3"/>',
-    b: '<path d="M31 82h38v8H31z"/><path d="M39 74h22l7-28L50 17 32 46z"/><path d="M50 24v42"/><path d="M42 43l16-10"/>',
-    r: '<path d="M27 82h46v8H27z"/><path d="M34 72h32V33H34z"/><path d="M31 23h10v8h8v-8h10v8h8v-8h10v18H31z"/>',
-    q: '<path d="M25 82h50v8H25z"/><path d="M33 73h34l7-42-16 16-8-24-8 24-16-16z"/><circle cx="26" cy="29" r="5"/><circle cx="50" cy="20" r="5"/><circle cx="74" cy="29" r="5"/>',
-    k: '<path d="M27 82h46v8H27z"/><path d="M35 73h30l6-34-14 8-7-20-7 20-14-8z"/><path d="M50 13v21M40 23h20"/>',
-  };
-
-  return `<svg class="bork-piece-icon" viewBox="0 0 100 100" aria-hidden="true">
-    <g class="piece-body">${shapes[type] || shapes.p}</g>
-    <path class="piece-glint" d="M34 88h32"/>
-    <path class="piece-cut" d="M38 76h24"/>
-  </svg>`;
-}
-
-function pieceMarkup(piece, symbol) {
+function pieceMarkup(piece) {
   if (!piece) return "";
   const pieceClass = `${piece.color === "w" ? "white" : "black"}-piece`;
-  return `<span class="piece ${pieceClass}" data-piece="${piece.type}">
-    ${borkPieceSvg(piece.type)}
-    <span class="classic-symbol">${symbol}</span>
-  </span>`;
+  return `<span class="piece ${pieceClass}" data-piece="${piece.type}">${renderPiece(piece)}</span>`;
 }
 
 const PIECE_VALUE = {
@@ -153,6 +129,16 @@ const STRATEGIES = {
 };
 
 let ChessCtor = null;
+let puzzleIndex = 0;
+let currentPuzzle = null;
+
+function updateAppHeight() {
+  document.documentElement.style.setProperty("--app-height", `${window.innerHeight}px`);
+}
+
+window.addEventListener("resize", updateAppHeight);
+window.addEventListener("orientationchange", updateAppHeight);
+updateAppHeight();
 let game = null;
 let selectedSquare = null;
 let legalTargets = [];
@@ -227,6 +213,11 @@ const el = {
   weakMoves: document.querySelector("#weakMoves"),
   missedMoves: document.querySelector("#missedMoves"),
   boardAlert: document.querySelector("#boardAlert"),
+  coachToast: document.querySelector("#coachToast"),
+  coachToastText: document.querySelector("#coachToastText"),
+  coachToastCloseBtn: document.querySelector("#coachToastCloseBtn"),
+  coachToastSpeakBtn: document.querySelector("#coachToastSpeakBtn"),
+  coachToastNextBtn: document.querySelector("#coachToastNextBtn"),
   resultModal: document.querySelector("#resultModal"),
   resultTitle: document.querySelector("#resultTitle"),
   resultSummary: document.querySelector("#resultSummary"),
@@ -238,6 +229,20 @@ const el = {
   resultCloseBtn: document.querySelector("#resultCloseBtn"),
   promotionModal: document.querySelector("#promotionModal"),
   mobileMenuBtn: document.querySelector("#mobileMenuBtn"),
+  mobileMenuActionBtn: document.querySelector("#mobileMenuActionBtn"),
+  openSettingsLink: document.querySelector("#openSettingsLink"),
+  menuNewGameBtn: document.querySelector("#menuNewGameBtn"),
+  menuResignBtn: document.querySelector("#menuResignBtn"),
+  menuFlipBtn: document.querySelector("#menuFlipBtn"),
+  menuCopyPgnBtn: document.querySelector("#menuCopyPgnBtn"),
+  menuSpeakBtn: document.querySelector("#menuSpeakBtn"),
+  menuComboBtn: document.querySelector("#menuComboBtn"),
+  menuOpeningsBtn: document.querySelector("#menuOpeningsBtn"),
+  menuCoachBtn: document.querySelector("#menuCoachBtn"),
+  menuNextPuzzleBtn: document.querySelector("#menuNextPuzzleBtn"),
+  lastMoveLine: document.querySelector("#lastMoveLine"),
+  prevMoveBtn: document.querySelector("#prevMoveBtn"),
+  nextMoveBtn: document.querySelector("#nextMoveBtn"),
   sidePanel: document.querySelector("#sidePanel"),
   sheetCloseBtn: document.querySelector("#sheetCloseBtn"),
   experienceGrid: document.querySelector("#experienceGrid"),
@@ -299,9 +304,10 @@ function syncSettingsUi() {
   el.voiceToggle.checked = voiceEnabled;
   setSoundEnabled(soundEnabled);
   document.querySelectorAll("[data-experience]").forEach(button => button.classList.toggle("active", button.dataset.experience === activeExperience));
-  document.body.classList.toggle("bork-pieces", pieceStyle === "bork");
-  document.body.classList.toggle("classic-pieces", pieceStyle === "classic");
-  el.pieceStyleBtn.textContent = pieceStyle === "bork" ? "Фигуры: BORK" : "Фигуры: классика";
+  pieceStyle = "bork";
+  document.body.classList.add("bork-pieces");
+  document.body.classList.remove("classic-pieces");
+  el.pieceStyleBtn.textContent = "Фигуры: BORK SVG";
 }
 
 function setStats(stats) {
@@ -333,6 +339,22 @@ function showBoardAlert(message, tone = "accent") {
   el.boardAlert.textContent = message;
   el.boardAlert.className = `board-alert show ${tone}`;
   boardAlertTimer = window.setTimeout(() => el.boardAlert.classList.remove("show"), 1800);
+}
+
+function showCoachToast(message) {
+  if (!el.coachToast || !el.coachToastText || !message) return;
+  window.clearTimeout(boardAlertTimer);
+  el.coachToastText.textContent = message.replace(/\s+/g, " ").slice(0, 180);
+  if (el.coachToastSpeakBtn) el.coachToastSpeakBtn.disabled = !voiceEnabled;
+  if (el.coachToastNextBtn) el.coachToastNextBtn.hidden = activeExperience !== "combo";
+  el.coachToast.classList.add("show");
+  el.coachToast.setAttribute("aria-hidden", "false");
+  boardAlertTimer = window.setTimeout(hideCoachToast, 6500);
+}
+
+function hideCoachToast() {
+  el.coachToast?.classList.remove("show");
+  el.coachToast?.setAttribute("aria-hidden", "true");
 }
 
 function renderStats() {
@@ -491,9 +513,8 @@ function renderBoard() {
       check ? "check" : "",
     ].filter(Boolean).join(" ");
 
-    const pieceSymbol = piece ? PIECES[`${piece.color}${piece.type}`] : "";
     return `<button class="${classes}" data-square="${square}" aria-label="${square}">
-      ${pieceMarkup(piece, pieceSymbol)}
+      ${pieceMarkup(piece)}
     </button>`;
   }).join("");
 
@@ -506,6 +527,13 @@ function renderBoard() {
 
 function renderMoves() {
   const verboseHistory = game.history({ verbose: true });
+  if (el.lastMoveLine) {
+    const moveNo = Math.max(1, Math.ceil(verboseHistory.length / 2));
+    const white = verboseHistory.length % 2 === 0 ? verboseHistory.at(-2)?.san : verboseHistory.at(-1)?.san;
+    const black = verboseHistory.length % 2 === 0 ? verboseHistory.at(-1)?.san : "";
+    el.lastMoveLine.textContent = verboseHistory.length ? `${moveNo}. ${white || "…"}${black ? "  " + black : ""}` : "Ходы появятся здесь";
+  }
+  if (!el.moveList) return;
   el.moveList.innerHTML = "";
   for (let i = 0; i < verboseHistory.length; i += 2) {
     const white = verboseHistory[i]?.san || "";
@@ -572,7 +600,7 @@ function announcePositionState() {
   if (isCheckmate()) {
     showBoardAlert("МАТ", "danger");
     playGameOver();
-    speakCoach("Мат. Партия завершена.", true);
+    speakCoach("Мат. Партия завершена.");
   } else if (isCheck()) {
     showBoardAlert("ШАХ", "accent");
     playCheck();
@@ -588,11 +616,13 @@ function showResultModal(title, summary) {
   el.resultLevel.textContent = gameMode === "pvp" ? "Два игрока" : LEVELS[difficulty].label;
   el.resultColor.textContent = playerColor === "w" ? "Белые" : "Чёрные";
   el.resultModal.classList.add("show");
+  document.body.classList.add("result-open");
   el.resultModal.setAttribute("aria-hidden", "false");
 }
 
 function closeResultModal() {
   el.resultModal?.classList.remove("show");
+  document.body.classList.remove("result-open");
   el.resultModal?.setAttribute("aria-hidden", "true");
 }
 
@@ -602,7 +632,7 @@ function renderSheet() {
 }
 
 function speakCoach(text = el.coachText?.textContent || "", force = false) {
-  if ((!voiceEnabled && !force) || !text || !("speechSynthesis" in window)) return;
+  if (!voiceEnabled || !force || !text || !("speechSynthesis" in window)) return;
   const clean = text.replace(/\s+/g, " ").slice(0, 180);
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(clean);
@@ -692,15 +722,26 @@ function handleSquareClick(square) {
   renderBoard();
 }
 
+function renderPromotionPieces() {
+  el.promotionModal?.querySelectorAll("[data-promotion]").forEach(button => {
+    const type = button.dataset.promotion;
+    const label = button.querySelector("span")?.outerHTML || "";
+    button.innerHTML = `${renderPiece({ color: game?.turn?.() || playerColor || "w", type })}${label}`;
+  });
+}
+
 function showPromotionPicker(moves) {
   pendingPromotion = moves;
+  renderPromotionPieces();
   el.promotionModal?.classList.add("show");
+  document.body.classList.add("promotion-open");
   el.promotionModal?.setAttribute("aria-hidden", "false");
 }
 
 function closePromotionPicker() {
   pendingPromotion = null;
   el.promotionModal?.classList.remove("show");
+  document.body.classList.remove("promotion-open");
   el.promotionModal?.setAttribute("aria-hidden", "true");
 }
 
@@ -709,7 +750,12 @@ function completePlayerMove(move) {
   const moveReview = difficulty === 5 ? { message: "" } : reviewPlayerMove(move, movingColor);
   lastMoveAdvice = isNoviceLevel() ? moveReview.message : "";
   const result = makeMove(move, "player");
-  if (moveReview.kind === "weak" || moveReview.kind === "missed") speakCoach(moveReview.message);
+  if (result && activeExperience === "combo") {
+    const solved = currentPuzzle && result.from === currentPuzzle.bestMove.from && result.to === currentPuzzle.bestMove.to;
+    if (!solved && typeof game.undo === "function") { game.undo(); lastMove = null; renderBoard(); }
+    showCoachToast(solved ? `Верно. ${currentPuzzle.theme}: ${currentPuzzle.explanation}` : `Почти. Тема: ${currentPuzzle?.theme || "тактика"}. Попробуйте ещё раз.`);
+    return;
+  }
   if (result && !isGameOver()) {
     if (gameMode === "ai") {
       window.setTimeout(botMove, 260);
@@ -841,6 +887,7 @@ function updateCoach() {
 }
 
 function renderTactic() {
+  if (!el.tacticTitle || !el.tacticText) return;
   const tactic = TACTICS[tacticIndex % TACTICS.length];
   el.tacticTitle.textContent = tactic.title;
   el.tacticText.textContent = tactic.text;
@@ -1043,9 +1090,17 @@ function returnToSetup() {
   lastMove = null;
   lastMoveBy = null;
   lastMoveAdvice = "";
-  document.body.classList.remove("game-active", "novice-active", "pvp-active");
+  document.body.classList.remove("game-active", "screen-game", "novice-active", "pvp-active");
+  document.body.classList.add("screen-launch");
   if (game) renderBoard();
   toast("Выберите настройки новой партии");
+}
+
+
+function startNextPuzzle() {
+  puzzleIndex += 1;
+  activeExperience = "combo";
+  startGame({ color: playerColor, level: difficulty });
 }
 
 function startGame(options = {}) {
@@ -1053,6 +1108,11 @@ function startGame(options = {}) {
   difficulty = Number(options.level || difficulty);
   boardOrientation = gameMode === "pvp" ? "w" : playerColor;
   game = new ChessCtor();
+  currentPuzzle = activeExperience === "combo" ? PUZZLES[puzzleIndex % PUZZLES.length] : null;
+  if (currentPuzzle && typeof game.load === "function") {
+    game.load(currentPuzzle.fen);
+    boardOrientation = game.turn();
+  }
   gameStarted = true;
   gameResultSaved = false;
   resetQualityStats();
@@ -1075,11 +1135,12 @@ function startGame(options = {}) {
   el.hintsModeToggle.checked = hintsMode;
   el.noviceModeToggle.checked = noviceMode;
   saveSettings();
-  document.body.classList.add("game-active");
+  document.body.classList.remove("screen-launch");
+  document.body.classList.add("game-active", "screen-game");
   document.body.classList.toggle("pvp-active", gameMode === "pvp");
   document.body.classList.toggle("novice-active", isNoviceLevel());
   playStart();
-  toast(`Партия началась: ${LEVELS[difficulty].label}`);
+  toast(currentPuzzle ? `Комбинация: ${currentPuzzle.title}` : `Партия началась: ${LEVELS[difficulty].label}`);
   if (activeExperience !== "free") speakCoach("Тренировка началась. Сначала безопасность короля, затем центр и активность фигур.");
   renderBoard();
 
@@ -1174,7 +1235,7 @@ function initInteractions() {
   el.voiceToggle.addEventListener("change", () => {
     voiceEnabled = el.voiceToggle.checked;
     if (voiceEnabled && !("speechSynthesis" in window)) toast("Голос тренера не поддерживается браузером");
-    else if (voiceEnabled) speakCoach("Голос тренера включён.", true);
+    else if (voiceEnabled) toast("Голос тренера включён: используйте кнопку Озвучить совет.");
     saveSettings();
   });
   el.drawBtn.addEventListener("click", () => {
@@ -1201,14 +1262,23 @@ function initInteractions() {
       if (move) completePlayerMove(move);
     });
   });
-  el.mobileMenuBtn?.addEventListener("click", () => { activeSheetTab = "settings"; el.sidePanel?.classList.add("open"); renderSheet(); });
-  el.sheetCloseBtn?.addEventListener("click", () => el.sidePanel?.classList.remove("open"));
+  const openMenu = () => { activeSheetTab = "settings"; el.sidePanel?.classList.add("open"); document.body.classList.add("menu-open"); el.sidePanel?.setAttribute("aria-hidden", "false"); renderSheet(); };
+  const closeMenu = () => { el.sidePanel?.classList.remove("open"); document.body.classList.remove("menu-open"); el.sidePanel?.setAttribute("aria-hidden", "true"); };
+  el.mobileMenuBtn?.addEventListener("click", openMenu);
+  el.mobileMenuActionBtn?.addEventListener("click", openMenu);
+  el.openSettingsLink?.addEventListener("click", openMenu);
+  el.sheetCloseBtn?.addEventListener("click", closeMenu);
+  el.sidePanel?.addEventListener("click", (event) => { if (event.target === el.sidePanel) closeMenu(); });
+  window.addEventListener("keydown", (event) => { if (event.key === "Escape") closeMenu(); });
   document.querySelectorAll("[data-sheet-tab]").forEach(button => button.addEventListener("click", () => {
     activeSheetTab = button.dataset.sheetTab;
     el.sidePanel?.classList.add("open");
     renderSheet();
   }));
-  el.hintBtn?.addEventListener("click", () => { hintsMode = true; coachDetail = true; activeSheetTab = "coach"; el.sidePanel?.classList.add("open"); updateCoach(); speakCoach(el.coachText.textContent, true); renderSheet(); });
+  el.hintBtn?.addEventListener("click", () => { hintsMode = true; coachDetail = false; updateCoach(); showCoachToast(currentPuzzle ? `${currentPuzzle.theme}: ${currentPuzzle.explanation}` : (el.coachText.textContent || "Проверьте шахи, взятия и угрозы. Сейчас важен контроль центра.")); renderSheet(); });
+  el.coachToastCloseBtn?.addEventListener("click", hideCoachToast);
+  el.coachToastSpeakBtn?.addEventListener("click", () => speakCoach(el.coachToastText?.textContent, true));
+  el.coachToastNextBtn?.addEventListener("click", startNextPuzzle);
   el.coachIdeaBtn?.addEventListener("click", () => { coachDetail = true; updateCoach(); speakCoach(el.coachText.textContent); });
   el.coachSpeakBtn?.addEventListener("click", () => speakCoach(el.coachText.textContent, true));
   el.coachMoreBtn?.addEventListener("click", () => { coachDetail = !coachDetail; updateCoach(); });
@@ -1216,7 +1286,16 @@ function initInteractions() {
     boardOrientation = boardOrientation === "w" ? "b" : "w";
     renderBoard();
   });
-  el.copyPgnBtn.addEventListener("click", copyPgn);
+  el.copyPgnBtn?.addEventListener("click", copyPgn);
+  el.menuCopyPgnBtn?.addEventListener("click", copyPgn);
+  el.menuNewGameBtn?.addEventListener("click", () => { closeMenu(); returnToSetup(); });
+  el.menuResignBtn?.addEventListener("click", () => { closeMenu(); el.resignBtn?.click(); });
+  el.menuFlipBtn?.addEventListener("click", () => { closeMenu(); el.flipBtn?.click(); });
+  el.menuSpeakBtn?.addEventListener("click", () => { updateCoach(); speakCoach(el.coachText.textContent, true); });
+  el.menuComboBtn?.addEventListener("click", () => { activeExperience = "combo"; closeMenu(); startGame({ color: playerColor, level: difficulty }); });
+  el.menuNextPuzzleBtn?.addEventListener("click", () => { closeMenu(); startNextPuzzle(); });
+  el.menuOpeningsBtn?.addEventListener("click", () => { closeMenu(); showCoachToast("Открытие: захватите центр, развейте лёгкие фигуры и подготовьте рокировку."); });
+  el.menuCoachBtn?.addEventListener("click", () => { activeExperience = "coach"; closeMenu(); showCoachToast("Тренер включён: нажимайте Совет, чтобы получать короткий план позиции."); });
   el.hintsModeToggle.addEventListener("change", () => {
     hintsMode = el.hintsModeToggle.checked;
     updateCoach();
@@ -1228,12 +1307,13 @@ function initInteractions() {
     toast(noviceMode ? "Подробные объяснения включены" : "Подробные объяснения выключены");
   });
   el.pieceStyleBtn.addEventListener("click", () => {
-    pieceStyle = pieceStyle === "bork" ? "classic" : "bork";
+    pieceStyle = "bork";
     playToggle();
-    document.body.classList.toggle("bork-pieces", pieceStyle === "bork");
-    document.body.classList.toggle("classic-pieces", pieceStyle === "classic");
-    el.pieceStyleBtn.textContent = pieceStyle === "bork" ? "Фигуры: BORK" : "Фигуры: классика";
+    document.body.classList.add("bork-pieces");
+    document.body.classList.remove("classic-pieces");
+    el.pieceStyleBtn.textContent = "Фигуры: BORK SVG";
     saveSettings();
+    renderBoard();
   });
   document.querySelectorAll("[data-experience]").forEach(button => {
     button.addEventListener("click", () => {
@@ -1275,11 +1355,11 @@ function initInteractions() {
       activeStrategy = button.dataset.strategy;
       document.querySelectorAll("[data-strategy]").forEach(item => item.classList.remove("active"));
       button.classList.add("active");
-      el.strategyText.textContent = STRATEGIES[activeStrategy];
+      if (el.strategyText) el.strategyText.textContent = STRATEGIES[activeStrategy];
       updateCoach();
     });
   });
-  el.nextTacticBtn.addEventListener("click", () => {
+  el.nextTacticBtn?.addEventListener("click", () => {
     tacticIndex += 1;
     renderTactic();
   });
@@ -1292,7 +1372,8 @@ async function init() {
   applyExperienceState();
   renderTacticLibrary();
   renderTactic();
-  el.strategyText.textContent = STRATEGIES[activeStrategy];
+  renderPromotionPieces();
+  if (el.strategyText) el.strategyText.textContent = STRATEGIES[activeStrategy];
   initInteractions();
 
   try {
